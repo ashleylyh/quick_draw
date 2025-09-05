@@ -1,0 +1,30 @@
+[project]
+name = "quickdraw"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.12.3"
+dependencies = [
+    "fastapi>=0.116.1",
+    "joblib>=1.5.2",
+    "keras>=3.11.3",
+    "llvmlite==0.43.*",
+    "numba>=0.60,<0.61",
+    "numpy>=1.26",
+    "pandas>=2.3.2",
+    "pillow==10.1.0",
+    "pydantic>=2.11.7",
+    "pynndescent>=0.5.12",
+    "python-multipart==0.0.6",
+    "redis>=5.0.0",
+    "scikit-learn>=1.7.1",
+    "seaborn>=0.13.2",
+    "tensorflow>=2.20.0",
+    "umap>=0.1.1",
+    "umap-learn>=0.5.5",
+    "uvicorn>=0.35.0",
+]
+
+
+[tool.uv.extra-build-dependencies]
+numba = ["numpy.distutils"]
