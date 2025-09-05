@@ -75,6 +75,7 @@ def create_umap_from_embeddings(
             label_map=label_map,
             output_path=output_path,
             show=False,
+            font_path="./feature/NotoSansTC.ttf"
         )
         
         # Read the generated image and convert to base64

@@ -10,10 +10,19 @@ todo:
 [] transcript
 [] clustering plot automate (almost)
 [ok] how do the prob for easy and normal calculate
+[] pdf download
+[] qrcode generate
+[] real time prob?
 
 
-fix model import in api issue
+umap workflow:
+in score.js page, call the umap api -> 
+umap api fetch embedding and prompt using drawing api
+call the asynv function to process umap 
+return by function and upload to db and return from umap api to go back to score page
+visualize on page
 
+upload background embedding to db -> see if i can only use the umap bg + joblib file
 
 ---
 ## API Endpoint

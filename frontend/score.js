@@ -56,7 +56,7 @@ function populateSessionInfo(sessionData) {
         }
     }
     
-    playerInfo.innerHTML = `參賽者：${sessionData.player_name || '未知'}&emsp;&emsp;難度：${sessionData.difficulty === 'hard' ? '困難' : '簡單'}&nbsp;&nbsp;&nbsp;時間：${formattedTime}`;
+    playerInfo.innerHTML = `參賽者：${sessionData.player_name || '未知'}&emsp;&emsp;難度：${sessionData.difficulty === 'hard' ? '困難' : '簡單'}&emsp;&emsp;時間：${formattedTime}`;
 }
 
 function populateResultsTable(sessionData, drawingsData) {
