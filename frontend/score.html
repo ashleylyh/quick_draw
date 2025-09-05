@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickDraw 成績</title>
+    <link rel="stylesheet" href="score.css">
+</head>
+<body>
+    <div class="container">
+        <div class="score-card">
+            <h1 class="score-header">成績與說明</h1>
+            <div class="player-info" id="playerInfo"></div>
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>題次</th>
+                        <th>指定</th>
+                        <th>TOP1</th>
+                        <th>耗時</th>
+                        <th>逾時</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+            <!-- 玩家繪圖區塊 -->
+            <div class="player-drawings" id="playerDrawings">
+                <h2>玩家繪圖</h2>
+                <div class="drawings-grid" id="drawingsGrid">
+                    <!-- 繪圖將通過 JavaScript 動態載入 -->
+                </div>
+            </div>
+            
+            <!-- UMAP 視覺化區塊 -->
+            <div class="umap-visualization" id="umapVisualization">
+                <h2>嵌入向量視覺化</h2>
+                <div class="umap-container" id="umapContainer">
+                    <img id="umapImage" src="" alt="UMAP 視覺化" style="display: none;">
+                    <div class="loading-message" id="umapLoading">載入中...</div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <a class="btn" id="downloadBtn" href="#" download="">下載 CSV(可選)</a>
+                <button class="btn primary" id="restartBtn">重新開始遊戲</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="score.js"></script>
+</body>
+</html>

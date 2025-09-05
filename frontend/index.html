@@ -1,0 +1,106 @@
+<!-- index.html (merged & cleaned) -->
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>你畫我猜：來看看 AI 看不看得懂你畫的畫</title>
+
+    <link rel="stylesheet" href="./sketch_style.css" />
+
+    <!-- p5.js for drawing (no need for p5.dom in modern p5) -->
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+    <script defer src="./sketch.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="card">
+        <div class="header-content">
+          <div class="header-text">
+            <h1>你畫我猜：來看看 AI 看不看得懂你畫的畫</h1>
+            <p class="muted">使用 Google Quick, Draw! 類別與 AI 即時辨識手繪塗鴉。共 6 題，每題 20 秒。</p>
+          </div>
+          <div class="header-image">
+            <img src="https://as2.ftcdn.net/jpg/02/00/44/19/1000_F_200441991_oYh74W7MDHtB1oKbg7e0MpE9oDIJnwiR.jpg" alt="AI Drawing Game" />
+          </div>
+        </div>
+      </header>
+
+      <!-- 完成頁 -->
+      <section id="view-done" class="view card">
+        <h2 class="center">挑戰完成 🎉</h2>
+        <p class="center muted">感謝參與！成績已儲存。點擊下方按鈕下載結果。</p>
+        <div class="done-actions">
+          <button id="download" class="btn brand">點擊查看成績以及說明</button>
+          <button class="btn ghost" onclick="restartGame()">重新開始</button>
+        </div>
+      </section>
+
+      <!-- 表單頁 -->
+      <section id="view-form" class="view active card">
+        <h2>參賽者資訊</h2>
+        <div class="form-grid">
+          <div class="form-row-pair">
+            <div class="form-row">
+              <label for="player">姓名／暱稱</label>
+              <input id="player" type="text" placeholder="請輸入您的姓名或暱稱" autocomplete="off" />
+            </div>
+            <div class="form-row">
+              <label>性別</label>
+              <div class="radio-group">
+                <label><input type="radio" name="gender" value="male" /> 男</label>
+                <label><input type="radio" name="gender" value="female" /> 女</label>
+                <label><input type="radio" name="gender" value="other" /> 其他</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-row-pair">
+            <div class="form-row">
+              <label for="age">年齡</label>
+              <input id="age" type="number" min="1" max="120" placeholder="例如 18" autocomplete="off" />
+            </div>
+            <div class="form-row">
+              <label>挑戰難度</label>
+              <div class="radio-group">
+                <label><input type="radio" name="difficulty" value="simple" checked /> 簡單</label>
+                <label><input type="radio" name="difficulty" value="hard" /> 困難</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="formError" class="error"></div>
+        <div class="actions">
+          <button id="startBtn" class="btn brand">填寫完成，開始挑戰！</button>
+        </div>
+        <p class="tips">提示：點擊「開始挑戰」後會進到題目說明頁，再按「我知道了」就開始作畫與倒數計時。</p>
+      </section>
+
+      <!-- 題目說明頁（每題） -->
+      <section id="view-instruct" class="view card">
+        <div id="prompt" class="prompt">—</div>
+        <div class="muted center">時間限制：<strong>20 秒</strong></div>
+        <div class="actions center">
+          <button id="instrOk" class="btn primary">我知道了 → 開始作畫</button>
+          <button class="btn ghost" onclick="restartGame()">重新開始</button>
+        </div>
+      </section>
+
+      <!-- 作畫頁 -->
+      <section id="view-draw" class="view card">
+        <div class="prompt" id="drawPrompt">—</div>
+        <div class="timer" id="timer">—</div>
+        <div class="draw-wrap">
+          <div id="canvasContainer" class="canvas-shell"></div>
+          <div class="toolbar">
+            <button id="clearBtn" class="btn">清除畫布</button>
+            <button id="submitBtn" class="btn brand">提交</button>
+          </div>
+        </div>
+        <div id="res" class="center" style="margin-top:10px;"></div>
+        <div id="timeUpMsg">時間到！請按「提交」進入下一題。</div>
+      </section>
+    </div>
+  </body>
+</html>
