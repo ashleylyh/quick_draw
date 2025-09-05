@@ -13,6 +13,7 @@ todo:
 [] pdf download
 [] qrcode generate
 [] real time prob?
+[] 雷達圖
 
 
 umap workflow:
@@ -23,6 +24,9 @@ return by function and upload to db and return from umap api to go back to score
 visualize on page
 
 upload background embedding to db -> see if i can only use the umap bg + joblib file
+
+
+https://drive.google.com/drive/folders/17swGIJQ6D3Lbm2Nly4B5gqb-AIFozEs3?usp=sharing
 
 ---
 ## API Endpoint
