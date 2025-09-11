@@ -1,14 +1,52 @@
 // Category translations (English to Chinese)
+// export const zhMap = {
+//     'flashlight': '手電筒', 'belt': '皮帶', 'mushroom': '蘑菇', 'pond': '池塘',
+//     'strawberry': '草莓', 'pineapple': '鳳梨', 'sun': '太陽', 'cow': '牛',
+//     'computer': '電腦', 'hot_air_balloon': '熱氣球', 'dog': '狗', 'butterfly': '蝴蝶',
+//     'bird': '鳥', 'clock': '時鐘', 'star': '星星', 'mountain': '山',
+//     'bee': '蜜蜂', 'fish': '魚', 'calculator': '計算機', 'see_saw': '翹翹板',
+//     'bus': '公車', 'octopus': '章魚', 'ice_cream': '冰淇淋', 'car': '汽車',
+//     'map': '地圖', 'crab': '螃蟹', 'bicycle': '腳踏車', 'tree': '樹',
+//     'spider': '蜘蛛', 'envelope': '信封', 'eyeglasses': '眼鏡', 'campfire': '營火',
+//     'ambulance': '救護車', 'lollipop': '棒棒糖',
+// };
 export const zhMap = {
-    'flashlight': '手電筒', 'belt': '皮帶', 'mushroom': '蘑菇', 'pond': '池塘',
-    'strawberry': '草莓', 'pineapple': '鳳梨', 'sun': '太陽', 'cow': '牛',
-    'computer': '電腦', 'hot_air_balloon': '熱氣球', 'dog': '狗', 'butterfly': '蝴蝶',
-    'bird': '鳥', 'clock': '時鐘', 'star': '星星', 'mountain': '山',
-    'bee': '蜜蜂', 'fish': '魚', 'calculator': '計算機', 'see_saw': '翹翹板',
-    'bus': '公車', 'octopus': '章魚', 'ice_cream': '冰淇淋', 'car': '汽車',
-    'map': '地圖', 'crab': '螃蟹', 'bicycle': '腳踏車', 'tree': '樹',
-    'spider': '蜘蛛', 'envelope': '信封', 'eyeglasses': '眼鏡', 'campfire': '營火',
-    'ambulance': '救護車'
+    'fish': '魚',
+    'eyeglasses': '眼鏡',
+    'camel': '駱駝',
+    'see_saw': '翹翹板',
+    'bicycle': '腳踏車',
+    'shark': '鯊魚',
+    'palm_tree': '棕櫚樹',
+    'hot_air_balloon': '熱氣球',
+    'lollipop': '棒棒糖',
+    'mushroom': '蘑菇',
+    'umbrella': '雨傘',
+    'penguin': '企鵝',
+    'tree': '樹',
+    'spider': '蜘蛛',
+    'octopus': '章魚',
+    'hedgehog': '刺蝟',
+    'campfire': '營火',
+    'crab': '螃蟹',
+    'helicopter': '直升機',
+    'ambulance': '救護車',
+    'police_car': '警車',
+    'car': '汽車',
+    'truck': '卡車',
+    'bus': '公車',
+    'radio': '收音機',
+    'map': '地圖',
+    'envelope': '信封',
+    'camera': '相機',
+    'calculator': '計算機',
+    'laptop': '筆記型電腦',
+    'clock': '時鐘',
+    'donut': '甜甜圈',
+    'wheel': '輪子',
+    'ice_cream': '冰淇淋',
+    'apple': '蘋果',
+    'strawberry': '草莓'
 };
 
 export function toZh(en) {
@@ -59,15 +97,4 @@ export function buildCSVFromData(data) {
         csv += row + '\n';
     });
     return csv;
-}
-
-export function parsePredictions(predictions) {
-    if (typeof predictions === 'string') {
-        try {
-            return JSON.parse(predictions);
-        } catch {
-            return {};
-        }
-    }
-    return predictions || {};
 }
