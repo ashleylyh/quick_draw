@@ -76,6 +76,112 @@ body {
     color: var(--text);
 }
 
+/* Player drawings section */
+.player-drawings {
+    margin-top: 24px;
+    margin-bottom: 24px;
+}
+
+.player-drawings h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.drawings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Always 3 columns */
+    gap: 16px;
+}
+
+.drawing-item {
+    text-align: center;
+    background: var(--input-bg);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+}
+
+.drawing-label {
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.drawing-image {
+    max-width: 120px;
+    max-height: 120px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+}
+
+/* UMAP visualization section */
+.umap-visualization {
+    margin-top: 24px;
+    margin-bottom: 24px;
+}
+
+.umap-visualization h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.umap-container {
+    text-align: center;
+    background: var(--input-bg);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    min-height: 100px;
+}
+
+#umapImage {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+
+/* Radar chart visualization section */
+.radar-visualization {
+    margin-top: 24px;
+    margin-bottom: 24px;
+}
+
+.radar-visualization h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.radar-container {
+    text-align: center;
+    background: var(--input-bg);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    min-height: 100px;
+    /* max-width: 600px;
+    margin: 0 auto; */
+}
+
+#radarImage {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.loading-message {
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+}
+
 .action-buttons {
     display: flex;
     gap: 12px;
@@ -111,6 +217,91 @@ body {
     border-color: var(--primary-hover);
 }
 
+/* Total score section */
+.total-score-section {
+    margin-top: 24px;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.total-score-section h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--text);
+}
+
+.total-score-display {
+    background: var(--primary);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
+    display: inline-block;
+    min-width: 200px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.score-value {
+    font-size: 32px;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.score-label {
+    font-size: 18px;
+    font-weight: normal;
+}
+
+/* Enhanced results table for additional columns */
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.results-table th {
+    background: var(--input-bg);
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.results-table td {
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+
+/* Correctness indicators */
+.correct-indicator {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.correct-indicator.correct {
+    background: #d4edda;
+    color: #155724;
+}
+
+.correct-indicator.incorrect {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Score styling */
+.score-cell {
+    font-weight: bold;
+    color: var(--primary);
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 10px;
@@ -121,11 +312,46 @@ body {
     }
     
     .results-table {
-        font-size: 12px;
+        font-size: 11px;
+        overflow-x: auto;
+        display: block;
+        white-space: nowrap;
+    }
+    
+    .results-table thead,
+    .results-table tbody,
+    .results-table tr {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
     }
     
     .results-table th,
     .results-table td {
-        padding: 6px 8px;
+        padding: 4px 6px;
+        font-size: 10px;
+    }
+    
+    .total-score-display {
+        min-width: 150px;
+        padding: 15px;
+    }
+    
+    .score-value {
+        font-size: 24px;
+    }
+    
+    .score-label {
+        font-size: 14px;
+    }
+    
+    .drawings-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+    }
+    
+    .drawing-image {
+        max-width: 100px;
+        max-height: 100px;
     }
 }

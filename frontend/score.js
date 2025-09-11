@@ -1,4 +1,4 @@
-import { zhMap, toZh, formatTimestamp, buildCSVFromData } from './utils.js';
+import {toZh, formatTimestamp, buildCSVFromData } from './utils.js';
 
 // Individual API-calling functions
 async function fetchSessionResults(sessionId) {
@@ -41,6 +41,26 @@ async function fetchUMAPVisualization(sessionId) {
     }
 }
 
+async function fetchRadarChart(sessionId) {
+    try {
+        console.log(`Fetching radar chart for session: ${sessionId}`);
+        const response = await fetch(`http://localhost:8000/api/radar/${sessionId}`);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Radar API error: ${response.status} ${response.statusText}`, errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Radar API response:', data);
+        return data;
+    } catch (error) {
+        console.error('Error fetching radar chart:', error);
+        throw error;
+    }
+}
+
 // Individual population functions (no API calls)
 function populateSessionInfo(sessionData) {
     const playerInfo = document.getElementById('playerInfo');
@@ -76,6 +96,7 @@ function populateResultsTable(sessionData, drawingsData) {
         sessionRounds = [];
     }
 
+    let totalScore = 0;
     const rows = (drawingsData || []).map(d => {
         const predictions = typeof d.predictions === 'string' ? JSON.parse(d.predictions) : (d.predictions || {});
         const roundChoices = sessionRounds[d.round - 1] || [];
@@ -90,9 +111,40 @@ function populateResultsTable(sessionData, drawingsData) {
         }
         const sorted = Object.entries(filteredPredictions).map(([name,p])=>({name,p})).sort((a,b)=>b.p-a.p);
         const top1 = sorted[0] ? `${toZh(sorted[0].name)} (${(sorted[0].p*100).toFixed(1)}%)` : '-';
-        return `<tr><td>${d.round}</td><td>${toZh(d.prompt)}</td><td>${top1}</td><td>${d.time_spent_sec}s</td><td>${d.timed_out ? '是' : '否'}</td></tr>`;
+        
+        // Check correctness - if top1 prediction matches the prompt
+        const isCorrect = sorted[0] && sorted[0].name === d.prompt;
+        const correctnessDisplay = isCorrect ? 
+            '<span class="correct-indicator correct">✓</span>' : 
+            '<span class="correct-indicator incorrect">✗</span>';
+        
+        // Calculate score - use the probability for the correct prompt
+        const score = predictions[d.prompt] ? (predictions[d.prompt] * 100) : 0;
+        totalScore += score;
+        const scoreDisplay = `<span class="score-cell">${score.toFixed(1)}</span>`;
+        
+        return `<tr>
+            <td>${d.round}</td>
+            <td>${toZh(d.prompt)}</td>
+            <td>${top1}</td>
+            <td>${d.time_spent_sec}s</td>
+            <td>${d.timed_out ? '是' : '否'}</td>
+            <td>${correctnessDisplay}</td>
+            <td>${scoreDisplay}</td>
+        </tr>`;
     }).join('');
+    
     resultsBody.innerHTML = rows;
+    
+    // Update total score display
+    updateTotalScore(totalScore);
+}
+
+function updateTotalScore(totalScore) {
+    const totalScoreValue = document.getElementById('totalScoreValue');
+    if (totalScoreValue) {
+        totalScoreValue.textContent = totalScore.toFixed(1);
+    }
 }
 
 function populatePlayerDrawings(drawingsData) {
@@ -186,6 +238,72 @@ function populateUMAPVisualization(umapData) {
     }
 }
 
+function populateRadarChart(radarData) {
+    const radarImage = document.getElementById('radarImage');
+    const radarLoading = document.getElementById('radarLoading');
+    
+    console.log('populateRadarChart called with:', radarData);
+    
+    if (!radarImage || !radarLoading) {
+        console.error('Radar DOM elements not found:', {
+            radarImage: !!radarImage,
+            radarLoading: !!radarLoading
+        });
+        return;
+    }
+    
+    if (radarData && radarData.status === 'success' && radarData.image_base64) {
+        console.log('Radar data is valid, setting image source');
+        
+        // Add error handling for image loading
+        radarImage.onload = function() {
+            console.log('Radar image loaded successfully');
+            radarImage.style.display = 'block';
+            radarLoading.style.display = 'none';
+        };
+        
+        radarImage.onerror = function() {
+            console.error('Failed to load radar image');
+            radarLoading.textContent = '雷達圖載入失敗';
+            radarImage.style.display = 'none';
+        };
+        
+        radarImage.src = `data:image/png;base64,${radarData.image_base64}`;
+        
+        // Show additional info if available
+        if (radarData.drawings_count) {
+            console.log(`Radar chart generated from ${radarData.drawings_count} drawings`);
+        }
+        if (radarData.prompts && radarData.probabilities) {
+            console.log('Radar data:', {
+                prompts: radarData.prompts,
+                probabilities: radarData.probabilities
+            });
+        }
+        
+    } else {
+        console.error('Radar data is invalid:', {
+            hasData: !!radarData,
+            status: radarData?.status,
+            hasImage: !!radarData?.image_base64,
+            fullData: radarData
+        });
+        
+        let errorMessage = '雷達圖載入失敗';
+        if (radarData?.status === 'error') {
+            errorMessage += `: ${radarData.error || '未知錯誤'}`;
+        } else if (!radarData) {
+            errorMessage += ': 無回應資料';
+        } else if (!radarData.image_base64) {
+            errorMessage += ': 無圖片資料';
+        }
+        
+        radarLoading.textContent = errorMessage;
+        radarImage.style.display = 'none';
+        radarLoading.style.display = 'block';
+    }
+}
+
 function setupCSVDownload(sessionData, drawingsData) {
     const downloadBtn = document.getElementById('downloadBtn');
     if (!downloadBtn) return;
@@ -211,20 +329,24 @@ async function populateAll(sessionId) {
         const resultsBody = document.getElementById('resultsBody');
         const drawingsGrid = document.getElementById('drawingsGrid');
         const umapLoading = document.getElementById('umapLoading');
+        const radarLoading = document.getElementById('radarLoading');
         
         if (playerInfo) playerInfo.innerHTML = '載入中...';
         if (resultsBody) resultsBody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
         if (drawingsGrid) drawingsGrid.innerHTML = '<div class="loading-message">載入中...</div>';
         if (umapLoading) umapLoading.textContent = '載入中...';
+        if (radarLoading) radarLoading.textContent = '載入中...';
 
         // Fetch all data
-        const [sessionResults, drawingsResults, umapResults] = await Promise.allSettled([
+        const [sessionResults, drawingsResults, umapResults, radarResults] = await Promise.allSettled([
             fetchSessionResults(sessionId),
             fetchPlayerDrawings(sessionId),
-            fetchUMAPVisualization(sessionId)
+            fetchUMAPVisualization(sessionId),
+            fetchRadarChart(sessionId)
         ]);
 
         console.log('Umap Results:', umapResults);
+        console.log('Radar Results:', radarResults);
         // Handle session results
         if (sessionResults.status === 'fulfilled') {
             const sessionData = sessionResults.value.session || sessionResults.value;
@@ -261,6 +383,21 @@ async function populateAll(sessionId) {
                     errorMessage += `: ${umapResults.reason.message}`;
                 }
                 umapLoading.textContent = errorMessage;
+            }
+        }
+
+        // Handle Radar chart
+        if (radarResults.status === 'fulfilled') {
+            console.log('Radar request fulfilled successfully');
+            populateRadarChart(radarResults.value);
+        } else {
+            console.error('Radar request failed:', radarResults.reason);
+            if (radarLoading) {
+                let errorMessage = '雷達圖載入失敗';
+                if (radarResults.reason?.message) {
+                    errorMessage += `: ${radarResults.reason.message}`;
+                }
+                radarLoading.textContent = errorMessage;
             }
         }
 

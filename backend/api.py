@@ -13,6 +13,7 @@ from redis_utils import get_redis
 from ml_utils import process_image_to_model_input, CLASSES, load_model
 from game_logic import build_rounds
 from umap_api_helper import create_umap_from_embeddings, get_class_label_map
+from radar_chart_auto import create_radar_from_session_data
 
 router = APIRouter()
 
@@ -230,6 +231,65 @@ async def generate_umap_visualization(session_id: str):
     except Exception as e:
         print(f"Error generating UMAP visualization: {e}")
         raise HTTPException(status_code=500, detail=f"Error generating UMAP visualization: {str(e)}")
+
+@router.get("/api/radar/{session_id}")
+async def generate_radar_chart(session_id: str):
+    try:
+        r = get_redis()
+        
+        # Get session data
+        session_data = r.hgetall(f"session:{session_id}")
+        if not session_data:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Get all drawings for this session
+        drawing_ids = r.lrange(f"session:{session_id}:drawings", 0, -1)
+        if not drawing_ids:
+            raise HTTPException(status_code=404, detail="No drawings found for this session")
+        
+        # Collect drawing data
+        session_drawings = []
+        for drawing_id in drawing_ids:
+            drawing_data = r.hgetall(drawing_id)
+            if drawing_data:
+                prompt = drawing_data.get("prompt", "")
+                predictions_str = drawing_data.get("predictions", "{}")
+                
+                try:
+                    predictions = json.loads(predictions_str) if predictions_str else {}
+                except json.JSONDecodeError:
+                    print(f"Error parsing predictions for {drawing_id}: {predictions_str}")
+                    continue
+                
+                session_drawings.append({
+                    "prompt": prompt,
+                    "predictions": predictions
+                })
+        
+        if not session_drawings:
+            raise HTTPException(status_code=404, detail="No valid drawing data found")
+        
+        # Generate radar chart (mapping and font path handled internally)
+        result = create_radar_from_session_data(
+            session_drawings=session_drawings
+        )
+        
+        if result["status"] == "success":
+            return {
+                "status": "success",
+                "image_base64": result["image_base64"],
+                "prompts": result["prompts"],
+                "probabilities": result["probabilities"],
+                "drawings_count": len(session_drawings)
+            }
+        else:
+            raise HTTPException(status_code=500, detail=f"Radar chart generation failed: {result['error']}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating radar chart: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating radar chart: {str(e)}")
 
 @router.get("/api/health")
 async def health_check():

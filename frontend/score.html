@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuickDraw 成績</title>
-    <link rel="stylesheet" href="score.css">
+    <link rel="stylesheet" href="score_style.css">
+    <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico">
 </head>
 <body>
     <div class="container">
@@ -19,10 +20,21 @@
                         <th>TOP1</th>
                         <th>耗時</th>
                         <th>逾時</th>
+                        <th>正確</th>
+                        <th>分數</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody"></tbody>
             </table>
+            
+            <!-- 總分區塊 -->
+            <div class="total-score-section" id="totalScoreSection">
+                <h2>總分</h2>
+                <div class="total-score-display" id="totalScoreDisplay">
+                    <span class="score-value" id="totalScoreValue">計算中...</span>
+                    <span class="score-label">分</span>
+                </div>
+            </div>
             <!-- 玩家繪圖區塊 -->
             <div class="player-drawings" id="playerDrawings">
                 <h2>玩家繪圖</h2>
@@ -37,6 +49,15 @@
                 <div class="umap-container" id="umapContainer">
                     <img id="umapImage" src="" alt="UMAP 視覺化" style="display: none;">
                     <div class="loading-message" id="umapLoading">載入中...</div>
+                </div>
+            </div>
+            
+            <!-- 雷達圖區塊 -->
+            <div class="radar-visualization" id="radarVisualization">
+                <h2>繪圖準確度雷達圖</h2>
+                <div class="radar-container" id="radarContainer">
+                    <img id="radarImage" src="" alt="雷達圖" style="display: none;">
+                    <div class="loading-message" id="radarLoading">載入中...</div>
                 </div>
             </div>
             
