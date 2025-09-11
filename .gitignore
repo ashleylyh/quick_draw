@@ -13,3 +13,6 @@ wheels/
 /backend/feature/background_embedding.csv
 /backend/feature/background_Umap_top72.joblib
 /backend/feature/embeddings.csv
+
+
+*.rdb
