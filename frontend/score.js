@@ -1,5 +1,8 @@
 import {toZh, formatTimestamp, buildCSVFromData } from './utils.js';
 
+// Import jsPDF and html2canvas from CDN (will be loaded in HTML)
+// These will be available as global variables: jsPDF and html2canvas
+
 // Individual API-calling functions
 async function fetchSessionResults(sessionId) {
     try {
@@ -57,6 +60,26 @@ async function fetchRadarChart(sessionId) {
         return data;
     } catch (error) {
         console.error('Error fetching radar chart:', error);
+        throw error;
+    }
+}
+
+async function fetchBothPlots(sessionId) {
+    try {
+        console.log(`Fetching both plots for session: ${sessionId}`);
+        const response = await fetch(`http://localhost:8000/api/plots/${sessionId}`);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Both plots API error: ${response.status} ${response.statusText}`, errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Both plots API response:', data);
+        return data;
+    } catch (error) {
+        console.error('Error fetching both plots:', error);
         throw error;
     }
 }
@@ -164,7 +187,7 @@ function populatePlayerDrawings(drawingsData) {
             drawingItem.className = 'drawing-item';
             drawingItem.innerHTML = `
                 <div class="drawing-label">第${d.round || idx + 1}題：${toZh(d.prompt || '未知題目')}</div>
-                <img src="data:image/png;base64,${d.image_base64}" 
+                <img src="data:image/png;base64,${d.original_image_data}" 
                      alt="drawing ${idx+1}" 
                      class="drawing-image">
             `;
@@ -304,21 +327,409 @@ function populateRadarChart(radarData) {
     }
 }
 
-function setupCSVDownload(sessionData, drawingsData) {
+function setupPDFDownload(sessionData, drawingsData) {
     const downloadBtn = document.getElementById('downloadBtn');
     if (!downloadBtn) return;
     
-    const data = {
-        session: sessionData,
-        drawings: drawingsData
-    };
+    downloadBtn.textContent = '下載 PDF 報告';
+    downloadBtn.href = '#';
+    downloadBtn.removeAttribute('download');
     
-    const csvContent = buildCSVFromData(data);
-    const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
-    const csvUrl = URL.createObjectURL(csvBlob);
+    downloadBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        await generatePDFReport(sessionData, drawingsData);
+    });
+}
+
+async function generatePDFReport(sessionData, drawingsData) {
+    try {
+        // Check if jsPDF and html2canvas are available
+        if (typeof html2canvas === 'undefined') {
+            alert('html2canvas 庫未載入，請重新整理頁面後再試');
+            return;
+        }
+        
+        // Check for jsPDF in different possible locations
+        let jsPDF;
+        if (window.jspdf && window.jspdf.jsPDF) {
+            jsPDF = window.jspdf.jsPDF;
+        } else if (window.jsPDF) {
+            jsPDF = window.jsPDF;
+        } else {
+            alert('jsPDF 庫未載入，請重新整理頁面後再試');
+            return;
+        }
+
+        // Show loading indicator
+        const downloadBtn = document.getElementById('downloadBtn');
+        const originalText = downloadBtn.textContent;
+        downloadBtn.textContent = '生成中...';
+        downloadBtn.disabled = true;
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        // Set up PDF styling
+        pdf.setFont('helvetica');
+        
+        // Page 1: Summary and Results Table
+        await addHeaderToPDF(pdf, sessionData);
+        await addResultsTableToPDF(pdf, sessionData, drawingsData);
+        
+        // Page 2: Player Drawings
+        pdf.addPage();
+        await addPlayerDrawingsToPDF(pdf, drawingsData);
+        
+        // Page 3: Visualizations
+        pdf.addPage();
+        await addVisualizationsToPDF(pdf);
+        
+        // Save the PDF
+        const fileName = `quickdraw_report_${sessionData.player_name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        pdf.save(fileName);
+        
+        // Reset button
+        downloadBtn.textContent = originalText;
+        downloadBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('PDF 生成失敗，請再試一次');
+        
+        // Reset button
+        const downloadBtn = document.getElementById('downloadBtn');
+        downloadBtn.textContent = '下載 PDF 報告';
+        downloadBtn.disabled = false;
+    }
+}
+
+async function addHeaderToPDF(pdf, sessionData) {
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('QuickDraw 成績報告', 105, 20, { align: 'center' });
     
-    downloadBtn.href = csvUrl;
-    downloadBtn.download = `quickdraw_logs_${sessionData.session_id}.csv`;
+    // Player info
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    
+    let formattedTime = '未知時間';
+    if (sessionData.timestamp) {
+        try {
+            formattedTime = formatTimestamp(sessionData.timestamp);
+        } catch (error) {
+            formattedTime = sessionData.timestamp;
+        }
+    }
+    
+    const playerName = sessionData.player_name || '未知';
+    const difficulty = sessionData.difficulty === 'hard' ? '困難' : '簡單';
+    
+    pdf.text(`參賽者：${playerName}`, 20, 35);
+    pdf.text(`難度：${difficulty}`, 20, 45);
+    pdf.text(`時間：${formattedTime}`, 20, 55);
+    
+    return 65; // Return next Y position
+}
+
+async function addResultsTableToPDF(pdf, sessionData, drawingsData) {
+    let y = 75;
+    
+    // Table title
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('遊戲結果', 20, y);
+    y += 15;
+    
+    // Table headers
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    const headers = ['題次', '指定', 'TOP1', '耗時', '逾時', '正確', '分數'];
+    const colWidths = [20, 30, 45, 20, 20, 20, 25];
+    let x = 20;
+    
+    headers.forEach((header, i) => {
+        pdf.text(header, x, y);
+        x += colWidths[i];
+    });
+    y += 10;
+    
+    // Table data
+    pdf.setFont('helvetica', 'normal');
+    let totalScore = 0;
+    
+    if (drawingsData && Array.isArray(drawingsData)) {
+        let sessionRounds = [];
+        if (typeof sessionData.rounds === 'string') {
+            try {
+                sessionRounds = JSON.parse(sessionData.rounds);
+            } catch (e) {
+                sessionRounds = [];
+            }
+        } else if (Array.isArray(sessionData.rounds)) {
+            sessionRounds = sessionData.rounds;
+        }
+        
+        drawingsData.forEach(d => {
+            const predictions = typeof d.predictions === 'string' ? JSON.parse(d.predictions) : (d.predictions || {});
+            const roundChoices = sessionRounds[d.round - 1] || [];
+            let filteredPredictions = predictions;
+            if (roundChoices.length > 0) {
+                filteredPredictions = {};
+                roundChoices.forEach(choice => {
+                    if (predictions[choice] !== undefined) {
+                        filteredPredictions[choice] = predictions[choice];
+                    }
+                });
+            }
+            const sorted = Object.entries(filteredPredictions).map(([name,p])=>({name,p})).sort((a,b)=>b.p-a.p);
+            const top1 = sorted[0] ? `${toZh(sorted[0].name)} (${(sorted[0].p*100).toFixed(1)}%)` : '-';
+            const isCorrect = sorted[0] && sorted[0].name === d.prompt;
+            const score = predictions[d.prompt] ? (predictions[d.prompt] * 100) : 0;
+            totalScore += score;
+            
+            x = 20;
+            const rowData = [
+                d.round.toString(),
+                toZh(d.prompt),
+                top1.length > 20 ? top1.substring(0, 17) + '...' : top1,
+                `${d.time_spent_sec}s`,
+                d.timed_out ? '是' : '否',
+                isCorrect ? '✓' : '✗',
+                score.toFixed(1)
+            ];
+            
+            rowData.forEach((data, i) => {
+                pdf.text(data, x, y);
+                x += colWidths[i];
+            });
+            y += 8;
+            
+            if (y > 270) { // If near bottom of page, add new page
+                pdf.addPage();
+                y = 30;
+            }
+        });
+    }
+    
+    // Total score
+    y += 10;
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`總分：${totalScore.toFixed(1)} 分`, 20, y);
+}
+
+async function addPlayerDrawingsToPDF(pdf, drawingsData) {
+    let y = 30;
+    
+    // Title
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('玩家繪圖', 20, y);
+    y += 20;
+    
+    if (!drawingsData || !Array.isArray(drawingsData) || drawingsData.length === 0) {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('無繪圖資料', 20, y);
+        return;
+    }
+    
+    // Add drawings in a grid
+    const imagesPerRow = 2;
+    const imageWidth = 80;
+    const imageHeight = 60;
+    const spacing = 10;
+    let col = 0;
+    
+    for (let i = 0; i < drawingsData.length; i++) {
+        const drawing = drawingsData[i];
+        const x = 20 + col * (imageWidth + spacing);
+        
+        // Add drawing label
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`第${drawing.round}題：${toZh(drawing.prompt)}`, x, y);
+        
+        try {
+            // Add the drawing image
+            const imageData = `data:image/png;base64,${drawing.original_image_data}`;
+            pdf.addImage(imageData, 'PNG', x, y + 5, imageWidth, imageHeight);
+        } catch (error) {
+            console.error('Error adding image to PDF:', error);
+            pdf.text('圖片載入失敗', x, y + 30);
+        }
+        
+        col++;
+        if (col >= imagesPerRow) {
+            col = 0;
+            y += imageHeight + 25;
+            
+            if (y > 200) { // If near bottom of page, add new page
+                pdf.addPage();
+                y = 30;
+            }
+        }
+    }
+}
+
+async function addVisualizationsToPDF(pdf) {
+    let y = 30;
+    
+    // Title
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('數據視覺化', 20, y);
+    y += 20;
+    
+    // UMAP Visualization
+    const umapImage = document.getElementById('umapImage');
+    if (umapImage && umapImage.style.display !== 'none' && umapImage.src) {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('嵌入向量視覺化 (UMAP)', 20, y);
+        y += 10;
+        
+        try {
+            // Convert image to canvas and then to PDF
+            const canvas = await html2canvas(umapImage, { 
+                useCORS: true, 
+                scale: 1,
+                backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 20, y, 170, 100);
+            y += 110;
+        } catch (error) {
+            console.error('Error adding UMAP to PDF:', error);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('UMAP 圖片載入失敗', 20, y);
+            y += 20;
+        }
+    } else {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('UMAP 視覺化不可用', 20, y);
+        y += 20;
+    }
+    
+    // Radar Chart
+    const radarImage = document.getElementById('radarImage');
+    if (radarImage && radarImage.style.display !== 'none' && radarImage.src) {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('繪圖準確度雷達圖', 20, y);
+        y += 10;
+        
+        try {
+            const canvas = await html2canvas(radarImage, { 
+                useCORS: true, 
+                scale: 1,
+                backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 20, y, 170, 100);
+        } catch (error) {
+            console.error('Error adding radar chart to PDF:', error);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('雷達圖載入失敗', 20, y);
+        }
+    } else {
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('雷達圖不可用', 20, y);
+    }
+}
+
+// Alternative function that uses the combined plots endpoint for better performance
+async function populateAllWithCombinedPlots(sessionId) {
+    try {
+        // Show loading states
+        const playerInfo = document.getElementById('playerInfo');
+        const resultsBody = document.getElementById('resultsBody');
+        const drawingsGrid = document.getElementById('drawingsGrid');
+        const umapLoading = document.getElementById('umapLoading');
+        const radarLoading = document.getElementById('radarLoading');
+        
+        if (playerInfo) playerInfo.innerHTML = '載入中...';
+        if (resultsBody) resultsBody.innerHTML = '<tr><td colspan="5">載入中...</td></tr>';
+        if (drawingsGrid) drawingsGrid.innerHTML = '<div class="loading-message">載入中...</div>';
+        if (umapLoading) umapLoading.textContent = '載入中...';
+        if (radarLoading) radarLoading.textContent = '載入中...';
+
+        // Fetch basic data and plots in parallel
+        const [sessionResults, drawingsResults, plotsResults] = await Promise.allSettled([
+            fetchSessionResults(sessionId),
+            fetchPlayerDrawings(sessionId),
+            fetchBothPlots(sessionId)
+        ]);
+
+        console.log('Plots Results:', plotsResults);
+        
+        // Handle session results
+        if (sessionResults.status === 'fulfilled') {
+            const sessionData = sessionResults.value.session || sessionResults.value;
+            populateSessionInfo(sessionData);
+            
+            // Also handle drawings data if available for results table
+            if (drawingsResults.status === 'fulfilled') {
+                const drawingsData = drawingsResults.value.drawing || drawingsResults.value;
+                populateResultsTable(sessionData, drawingsData);
+            }
+        } else {
+            if (playerInfo) playerInfo.innerHTML = '載入失敗';
+            if (resultsBody) resultsBody.innerHTML = '<tr><td colspan="5">載入失敗</td></tr>';
+        }
+
+        // Handle player drawings
+        if (drawingsResults.status === 'fulfilled') {
+            const drawingsData = drawingsResults.value.drawing || drawingsResults.value;
+            populatePlayerDrawings(drawingsData);
+        } else {
+            if (drawingsGrid) drawingsGrid.innerHTML = '<div class="loading-message">繪圖載入失敗</div>';
+        }
+
+        // Handle both plots
+        if (plotsResults.status === 'fulfilled') {
+            const plotsData = plotsResults.value;
+            console.log('Both plots request fulfilled successfully');
+            
+            // Handle UMAP
+            if (plotsData.umap && plotsData.umap.status === 'success') {
+                populateUMAPVisualization(plotsData.umap);
+            } else {
+                if (umapLoading) {
+                    let errorMessage = 'UMAP載入失敗';
+                    if (plotsData.umap?.error) {
+                        errorMessage += `: ${plotsData.umap.error}`;
+                    }
+                    umapLoading.textContent = errorMessage;
+                }
+            }
+            
+            // Handle Radar
+            if (plotsData.radar && plotsData.radar.status === 'success') {
+                populateRadarChart(plotsData.radar);
+            } else {
+                if (radarLoading) {
+                    let errorMessage = '雷達圖載入失敗';
+                    if (plotsData.radar?.error) {
+                        errorMessage += `: ${plotsData.radar.error}`;
+                    }
+                    radarLoading.textContent = errorMessage;
+                }
+            }
+        } else {
+            console.error('Both plots request failed:', plotsResults.reason);
+            if (umapLoading) umapLoading.textContent = 'UMAP載入失敗';
+            if (radarLoading) radarLoading.textContent = '雷達圖載入失敗';
+        }
+
+    } catch (error) {
+        const playerInfo = document.getElementById('playerInfo');
+        const resultsBody = document.getElementById('resultsBody');
+        if (playerInfo) playerInfo.innerHTML = '載入錯誤';
+        if (resultsBody) resultsBody.innerHTML = '<tr><td colspan="5">資料處理錯誤</td></tr>';
+    }
 }
 
 // Second level function that coordinates all individual functions
@@ -356,7 +767,8 @@ async function populateAll(sessionId) {
             if (drawingsResults.status === 'fulfilled') {
                 const drawingsData = drawingsResults.value.drawing || drawingsResults.value;
                 populateResultsTable(sessionData, drawingsData);
-                // setupCSVDownload(sessionData, drawingsData);
+                // Delay PDF setup to ensure libraries are loaded
+                setTimeout(() => setupPDFDownload(sessionData, drawingsData), 1000);
             }
         } else {
             if (playerInfo) playerInfo.innerHTML = '載入失敗';
@@ -413,9 +825,16 @@ async function populateAll(sessionId) {
 function loadResults() {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('sessionId');
+    const useCombinedApi = urlParams.get('combined') !== 'true'; // Default to true
     
     if (sessionId) {
-        populateAll(sessionId);
+        // if (useCombinedApi) {
+        //     console.log('Using combined plots API for better performance');
+        //     populateAllWithCombinedPlots(sessionId);
+        // } else {
+            console.log('Using separate API calls');
+            populateAll(sessionId);
+        // }
     } else if (window.scoreData) {
         // Handle legacy data if needed
         const sessionData = window.scoreData.session;
@@ -424,7 +843,8 @@ function loadResults() {
         populateSessionInfo(sessionData);
         populateResultsTable(sessionData, drawingsData);
         populatePlayerDrawings(drawingsData);
-        setupCSVDownload(sessionData, drawingsData);
+        // Delay PDF setup to ensure libraries are loaded
+        setTimeout(() => setupPDFDownload(sessionData, drawingsData), 1000);
     } else {
         const playerInfo = document.getElementById('playerInfo');
         const resultsBody = document.getElementById('resultsBody');
@@ -445,5 +865,11 @@ document.getElementById('restartBtn').addEventListener('click', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Log library availability on page load
+    console.log('Page loaded, checking libraries...');
+    console.log('html2canvas available:', typeof html2canvas !== 'undefined');
+    console.log('jsPDF available:', typeof window.jsPDF !== 'undefined');
+    console.log('jspdf available:', typeof window.jspdf !== 'undefined');
+    
     loadResults();
 });

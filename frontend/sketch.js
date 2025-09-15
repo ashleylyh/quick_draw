@@ -187,6 +187,11 @@ async function previewPredict() {
   }
 }
 
+function getOriginalCanvasAsBase64() {
+    const canvas = cnv ? cnv.elt : document.querySelector('canvas');
+    return canvas ? canvas.toDataURL('image/png') : null;
+}
+
 async function submitAnswer() {
   if (previewId) { clearInterval(previewId); previewId = null; }
   if (timerId) { clearInterval(timerId); timerId = null; }
@@ -195,10 +200,20 @@ async function submitAnswer() {
   const timedOut = timeLeftMs <= 0 ? 1 : 0;
 
   try {
-    const canvas = cnv ? cnv.elt : document.querySelector('canvas');
-    if (!canvas) throw new Error('Canvas not found');
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('Failed to create image');
+    // Use the SAME image processing as previewPredict
+    const imageData = getInputImageAsBase64();
+    if (!imageData) throw new Error('Failed to get image data');
+    // Convert base64 data URL to blob (same format as before for backend compatibility)
+    const response = await fetch(imageData);
+    const blob = await response.blob();
+
+    // Get original canvas image as base64 for visualization
+    const originalImageData = getOriginalCanvasAsBase64();
+    if (!originalImageData) throw new Error('Failed to get original image data');
+    // Convert base64 data URL to blob (same format as before for backend compatibility)
+    const originalResponse = await fetch(originalImageData);
+    const originalBlob = await originalResponse.blob();
+
 
     const formData = new FormData();
     formData.append('session_id', sessionId);
@@ -208,6 +223,7 @@ async function submitAnswer() {
     formData.append('time_spent_sec', spentSec.toFixed(2));
     formData.append('timed_out', String(timedOut));
     formData.append('drawing', blob, `${sessionId}_round${roundIdx+1}_${currentPrompt}.png`);
+    formData.append('original_image_data', originalBlob, `${sessionId}_round${roundIdx+1}_${currentPrompt}_original.png`);
 
     const resEl = $('res'); if (resEl) resEl.innerHTML = '正在分析您的繪圖...';
     const resp = await fetch(`${API_BASE}/predict`, { method: 'POST', body: formData });
