@@ -7,8 +7,72 @@ from matplotlib import patches
 from matplotlib import font_manager as fm
 import seaborn as sns
 import joblib
+import base64
+import io
+from redis_utils import get_redis
 
 ArrayLike = Union[np.ndarray, pd.DataFrame, Sequence[Sequence[float]]]
+
+# ---------- Helper: reduce background samples ----------
+
+def reduce_background_umap_samples(
+    background_umap_csv: str,
+    samples_per_class: Optional[int] = 500,
+    random_state: Optional[int] = 42,
+    strategy: str = 'uniform'
+) -> pd.DataFrame:
+    df = pd.read_csv(background_umap_csv)
+    original_count = len(df)
+    
+    # If samples_per_class is None, return all samples
+    if samples_per_class is None:
+        print(f"Using all background samples: {original_count}")
+        return df
+    
+    if 'class' in df.columns:
+        unique_classes = df['class'].unique()
+        n_classes = len(unique_classes)
+        
+        if strategy == 'uniform':
+            # Equal samples per class (this is the main use case now)
+            reduced_dfs = []
+            total_sampled = 0
+            for class_name in unique_classes:
+                class_data = df[df['class'] == class_name]
+                if len(class_data) > samples_per_class:
+                    sampled = class_data.sample(n=samples_per_class, random_state=random_state)
+                else:
+                    sampled = class_data
+                reduced_dfs.append(sampled)
+                total_sampled += len(sampled)
+            reduced_df = pd.concat(reduced_dfs, ignore_index=True)
+            # print(f"Reduced background samples: {original_count} → {total_sampled} ({samples_per_class} per class × {n_classes} classes)")
+        
+        else:  # stratified
+            # Proportional samples per class (legacy mode)
+            total_target = samples_per_class * n_classes
+            reduced_df = df.groupby('class').apply(
+                lambda x: x.sample(
+                    n=max(1, int(len(x) * total_target / original_count)),
+                    random_state=random_state
+                )
+            ).reset_index(drop=True)
+            
+            # If still too many, randomly sample to exact target
+            if len(reduced_df) > total_target:
+                reduced_df = reduced_df.sample(n=total_target, random_state=random_state)
+            # print(f"Reduced background samples: {original_count} → {len(reduced_df)} (stratified sampling)")
+    else:
+        # No class column, just random sample
+        total_target = samples_per_class if samples_per_class else original_count
+        if original_count > total_target:
+            reduced_df = df.sample(n=total_target, random_state=random_state)
+            # print(f"Reduced background samples: {original_count} → {total_target} (no class info)")
+        else:
+            reduced_df = df
+            # print(f"Using all background samples: {original_count} (no reduction needed)")
+    
+    return reduced_df
 
 # ---------- Core: sampling + smoothing ----------
 
@@ -206,6 +270,47 @@ def add_text_annotations(
                 zorder=1001  # Above everything else
             )
 
+def save_plot_to_redis(
+    fig: plt.Figure,
+    redis_key: str,
+    dpi: int = 200,
+    expire_sec: int = 3600
+) -> str:
+    """
+    Save plot to Redis as base64 encoded image.
+    
+    Args:
+        fig: Matplotlib figure
+        redis_key: Redis key to store the image
+        dpi: DPI for the saved image
+        expire_sec: Expiration time in seconds
+    
+    Returns:
+        base64 encoded image string
+    """
+    # Save figure to bytes buffer
+    buffer = io.BytesIO()
+    fig.savefig(
+        buffer, 
+        format='png',
+        dpi=dpi, 
+        bbox_inches="tight", 
+        pad_inches=0.1,
+        facecolor='white',
+        edgecolor='none'
+    )
+    buffer.seek(0)
+    
+    # Encode to base64
+    image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    buffer.close()
+    
+    # Store in Redis
+    redis_client = get_redis()
+    redis_client.set(redis_key, image_base64, ex=expire_sec)
+    
+    return image_base64
+
 def save_plot_properly(
     fig: plt.Figure,
     output_path: str,
@@ -233,7 +338,7 @@ def plot_umap_with_user(
     *,
     raw_embedding_csv: str,         # background embeddings CSV (must have 'class' + emb_*)
     umap_background_csv: str,       # background 2D CSV (must have umap_x, umap_y; optional scale_x, scale_y, class, cluster)
-    user_embedding_csv: str,        # user 6 images embeddings (must have 'prompt' + emb_*)
+    user_embedding_df: pd.DataFrame,        # user 6 images embeddings dataframe (must have 'prompt' + emb_*)
     umap_reducer_path: str,         # fitted UMAP reducer (.joblib) with .transform()
 
     # columns
@@ -246,6 +351,10 @@ def plot_umap_with_user(
     sample_size: int = 1,
     random_state: Optional[int] = None,
     normalize_class_space: bool = False,  # replace spaces with underscores to align categories
+    
+    # background reduction
+    max_background_samples_per_class: Optional[int] = None,  # e.g., 500 samples per class
+    background_sample_strategy: str = 'uniform',  # 'uniform' or 'stratified'
 
     # scaling to match your "scale_x / scale_y" style
     # Option A: learn from background if it already has scale_x/scale_y;
@@ -263,8 +372,7 @@ def plot_umap_with_user(
     user_marker: str = "^",
     user_color: str = "black",
     user_size: int = 120,
-    annotate: bool = True,
-    label_map: Optional[Dict[str, str]] = None,       # e.g., {"soccer_ball":"足球", ...}
+    annotate: bool = True,     # e.g., {"soccer_ball":"足球", ...}
     label_fontsize: int = 15,
     label_dx: float = 0.02,
     label_dy: float = 0.02,
@@ -272,12 +380,22 @@ def plot_umap_with_user(
 
     # output
     output_path: Optional[str] = None,
+    redis_key: Optional[str] = None,
     show: bool = False,
 ) -> Dict[str, Any]:
     # ---- read CSVs ----
     raw_embedding = pd.read_csv(raw_embedding_csv)
     background_Umap = pd.read_csv(umap_background_csv)
-    user_embedding = pd.read_csv(user_embedding_csv)
+    user_embedding = user_embedding_df  # Direct DataFrame instead of CSV
+    
+    # ---- reduce background samples if requested ----
+    if max_background_samples_per_class is not None:
+        background_Umap = reduce_background_umap_samples(
+            umap_background_csv,
+            samples_per_class=max_background_samples_per_class,
+            random_state=random_state,
+            strategy=background_sample_strategy
+        )
 
     if normalize_class_space:
         if bg_class_col in raw_embedding.columns:
@@ -369,6 +487,9 @@ def plot_umap_with_user(
         }
 
     # ---- labels (optional mapping, e.g., to Chinese names) ----
+    from plot_utils import get_class_label_map
+    label_map = get_class_label_map()
+    #  --- IGNORE ---
     if label_map is not None and "class" in mix_df_umap.columns:
         mix_df_umap["label"] = mix_df_umap["class"].map(label_map).fillna(mix_df_umap["class"])
     else:
@@ -420,6 +541,10 @@ def plot_umap_with_user(
         )
 
     # Save or show the plot
+    image_base64 = None
+    if redis_key:
+        image_base64 = save_plot_to_redis(fig, redis_key)
+    
     if output_path:
         save_plot_properly(fig, output_path)
 
@@ -434,36 +559,7 @@ def plot_umap_with_user(
         "used_scaled": use_scaled,
         "x_col": x_col,
         "y_col": y_col,
+        "image_base64": image_base64,  # Add base64 image data
     }
 
 # ---------- Example usage ----------
-
-if __name__ == "__main__":
-    feature_cols = [f"emb_{i}" for i in range(512)]
-
-    res = plot_umap_with_user(
-        raw_embedding_csv="./feature/background_embedding.csv",
-        umap_background_csv="./feature/background_Umap.csv",
-        user_embedding_csv="./feature/metsnk3z_results.csv",
-        umap_reducer_path="./feature/background_Umap_top72.joblib",
-
-        feature_cols=feature_cols,
-        input_class_col="prompt",
-        bg_class_col="class",
-        cluster_col="cluster",
-        sample_size=1,
-        random_state=42,
-        normalize_class_space=True,
-
-        # Styling
-        figsize=(10, 7),
-        user_marker="^",
-        user_color="black",
-        user_size=120,
-        annotate=True,
-        output_path="umap_overlay.png",
-        show=False,
-    )
-
-    print("Skipped:", res["skipped_classes"])
-    print(res["user_umap"])
