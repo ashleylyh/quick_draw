@@ -12,36 +12,17 @@ import matplotlib.patches as patches
 def create_radar_chart(
     prompts: List[str],
     probabilities: List[float],
-    label_map: Optional[Dict[str, str]] = None,
     figsize=(10, 10),
     title: str = "繪圖準確度雷達圖",
     font_path: Optional[str] = None,
     output_path: Optional[str] = None
 ) -> Dict[str, Any]:
-    """
-    Create a radar chart from prompts and their corresponding probabilities.
-    
-    Args:
-        prompts: List of prompt names (English)
-        probabilities: List of probabilities for each prompt (0-1)
-        label_map: Optional mapping from English to Chinese labels
-        figsize: Figure size tuple
-        title: Chart title
-        font_path: Optional path to Chinese font file
-        output_path: Optional path to save the image file
-        
-    Returns:
-        Dict containing:
-        - image_base64: Base64 encoded PNG image
-        - status: success/error
-        - error: error message if failed
-    """
+
     try:
+        from plot_utils import get_class_label_map
         # Prepare labels (use Chinese mapping if available)
-        if label_map:
-            labels = [label_map.get(prompt, prompt) for prompt in prompts]
-        else:
-            labels = prompts
+        label_map = get_class_label_map()
+        labels = [label_map.get(prompt, prompt) for prompt in prompts]
             
         # Convert probabilities to percentages
         values = [prob * 100 for prob in probabilities]
@@ -144,24 +125,7 @@ def create_radar_from_session_data(
     session_drawings: List[Dict[str, Any]],
     **kwargs
 ) -> Dict[str, Any]:
-    """
-    Create radar chart from session drawing data.
-    
-    Args:
-        session_drawings: List of drawing data with 'prompt' and 'predictions'
-        **kwargs: Additional arguments passed to create_radar_chart
-        
-    Returns:
-        Dict from create_radar_chart function
-    """
-    # Get Chinese label mapping
-    try:
-        from umap_api_helper import get_class_label_map
-        label_map = get_class_label_map()
-    except Exception as e:
-        print(f"Warning: Could not load Chinese label mapping: {e}")
-        label_map = {}
-    
+
     # Get font path for Chinese text
     font_path = "./feature/NotoSansTC.ttf"
     if not os.path.exists(font_path):
@@ -193,7 +157,6 @@ def create_radar_from_session_data(
     return create_radar_chart(
         prompts=prompts,
         probabilities=probabilities,
-        label_map=label_map,
         font_path=font_path,
         title="繪圖準確度雷達圖",
         **kwargs

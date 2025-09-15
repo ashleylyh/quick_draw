@@ -185,36 +185,6 @@ def _stable_dedupe(seq):
 def _choice(seq, rng: random.Random):
     return seq[rng.randint(0, len(seq) - 1)]
 
-# def _backfill_to_per_round(choices, prompt, rng: random.Random):
-#     """
-#     Ensure exactly PER_ROUND unique options, always including prompt.
-#     Backfills from CLASSES if needed.
-#     """
-#     want = PER_ROUND
-#     chosen = _stable_dedupe(list(choices))
-#     if prompt not in chosen:
-#         chosen.append(prompt)
-
-#     # If oversized, keep prompt and sample others
-#     if len(chosen) > want:
-#         others = [c for c in chosen if c != prompt]
-#         take = want - 1
-#         picked_others = others if len(others) <= take else rng.sample(others, take)
-#         out = picked_others + [prompt]
-#         rng.shuffle(out)
-#         return out
-
-#     # If undersized, backfill from CLASSES
-#     need = want - len(chosen)
-#     if need > 0:
-#         exclude = set(chosen)
-#         pool = [c for c in CLASSES if c not in exclude]
-#         extra = sample_unique(pool, min(need, len(pool)), rng=rng)
-#         chosen += extra
-
-#     rng.shuffle(chosen)
-#     return chosen
-
 def build_rounds(difficulty: str, *, seed: Optional[int] = None) -> Dict[str, List[List[str]]]:
     """
     Build rounds & prompts. Different every call by default.
