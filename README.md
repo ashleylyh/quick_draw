@@ -4,16 +4,18 @@ todo:
 
 [ok] question randomness
 [ok] frontend
-[] frontend wording
+
 [ok] database
-[] translation (zh)
-[] transcript
-[] clustering plot automate (almost)
+[ok] translation (zh)
+
+[ok] clustering plot automate (almost) (faster)
 [ok] how do the prob for easy and normal calculate
-[] pdf download
+[] pdf download -> layout, chinese word
+[ok] transcript design
 [] qrcode generate
-[] real time prob?
-[] 雷達圖
+[ok] real time prob? (check prob correctness)
+[] frontend wording
+[ok] 雷達圖
 
 
 umap workflow:
@@ -23,10 +25,29 @@ call the asynv function to process umap
 return by function and upload to db and return from umap api to go back to score page
 visualize on page
 
-upload background embedding to db -> see if i can only use the umap bg + joblib file
+[ok] upload background embedding to db -> see if i can only use the umap bg + joblib file
 
-
-https://drive.google.com/drive/folders/17swGIJQ6D3Lbm2Nly4B5gqb-AIFozEs3?usp=sharing
+redis -> fucntion
+---
+### Frontend Command
+```
+python -m http.server 3000
+```
+### Backend Command
+```
+python app.py
+```
+### Start Redis DB
+```
+redis-server
+```
+### Flush Redis
+open a new terminal session
+```
+redis-cli flushall
+```
+Ctrl+F5 -> hard refresh webpage
+Ctrl+C  -> kill the process
 
 ---
 ## API Endpoint
