@@ -13,7 +13,7 @@ def create_radar_chart(
     prompts: List[str],
     probabilities: List[float],
     figsize=(10, 10),
-    title: str = "繪圖準確度雷達圖",
+    title: str = "AI預測繪圖準確度雷達圖",
     font_path: Optional[str] = None,
     output_path: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -56,16 +56,16 @@ def create_radar_chart(
         
         # Add labels
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(labels[:-1], fontproperties=prop, fontsize=10)
+        ax.set_xticklabels(labels[:-1], fontproperties=prop, fontsize=15)
         
         # Set y-axis limits and labels
         ax.set_ylim(0, 100)
         ax.set_yticks([20, 40, 60, 80, 100])
-        ax.set_yticklabels(['20%', '40%', '60%', '80%', '100%'], fontsize=8)
+        ax.set_yticklabels(['20%', '40%', '60%', '80%', '100%'], fontsize=17)
         ax.grid(True)
         
         # Add title
-        plt.title(title, fontproperties=prop, fontsize=14, fontweight='bold', pad=15)
+        plt.title(title, fontproperties=prop, fontsize=17, fontweight='bold', pad=15)
         
         # Add a border around the entire figure
         border = patches.Rectangle(
@@ -127,7 +127,7 @@ def create_radar_from_session_data(
 ) -> Dict[str, Any]:
 
     # Get font path for Chinese text
-    font_path = "./feature/NotoSansTC.ttf"
+    font_path = "../frontend/fonts/NotoSansTC.ttf"
     if not os.path.exists(font_path):
         print("Warning: Chinese font not found, using default font")
         font_path = None
@@ -158,6 +158,6 @@ def create_radar_from_session_data(
         prompts=prompts,
         probabilities=probabilities,
         font_path=font_path,
-        title="繪圖準確度雷達圖",
+        title="AI預測繪圖準確度雷達圖",
         **kwargs
     )

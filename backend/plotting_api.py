@@ -68,7 +68,7 @@ class PlottingAPI:
                 "annotate": True,
                 "redis_key": redis_key,
                 "show": False,
-                "font_path": "./feature/NotoSansTC.ttf"
+                "font_path": "../frontend/fonts/NotoSansTC.ttf"
             }
             
             # Update with any provided kwargs

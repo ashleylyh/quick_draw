@@ -520,7 +520,7 @@ def plot_umap_with_user(
         user_marker=user_marker,
         user_color=user_color,
         user_size=user_size,
-        title="我畫的圖與大家畫的圖的距離（標題可改）",
+        title="我畫的圖與與訓練資料的 UMAP 分佈",
         font_prop=prop
     )
     
