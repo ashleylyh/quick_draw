@@ -98,8 +98,17 @@ function populateSessionInfo(sessionData) {
             formattedTime = sessionData.timestamp; // Fallback to raw timestamp
         }
     }
-    
-    playerInfo.innerHTML = `參賽者：${sessionData.player_name || '未知'}&emsp;&emsp;難度：${sessionData.difficulty === 'hard' ? '困難' : '簡單'}&emsp;&emsp;時間：${formattedTime}`;
+    playerInfo.innerHTML = `
+        <span class="player-label">參賽者：</span>
+        <span class="player-value">${sessionData.player_name || '未知'}</span>
+        &emsp;&emsp;
+        <span class="player-label">難度：</span>
+        <span class="player-value">${sessionData.difficulty === 'hard' ? '困難' : '簡單'}</span>
+        &emsp;&emsp;
+        <span class="player-label">時間：</span>
+        <span class="player-value">${formattedTime}</span>
+    `;
+    // playerInfo.innerHTML = `參賽者：${sessionData.player_name || '未知'}&emsp;&emsp;難度：${sessionData.difficulty === 'hard' ? '困難' : '簡單'}&emsp;&emsp;時間：${formattedTime}`;
 }
 
 function populateResultsTable(sessionData, drawingsData) {
@@ -327,15 +336,86 @@ function populateRadarChart(radarData) {
     }
 }
 
-function setupPDFDownload(sessionData, drawingsData) {
+function setupScreenshotDownload(sessionData, drawingsData) {
     const downloadBtn = document.getElementById('downloadBtn');
     if (!downloadBtn) return;
     
-    downloadBtn.textContent = '下載 PDF 報告';
+    downloadBtn.textContent = '下載成績截圖';
     downloadBtn.href = '#';
     downloadBtn.removeAttribute('download');
     
     downloadBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        await generateScreenshot(sessionData, drawingsData);
+    });
+}
+
+async function generateScreenshot(sessionData, drawingsData) {
+    try {
+        // Check if html2canvas is available
+        if (typeof html2canvas === 'undefined') {
+            alert('html2canvas 庫未載入，請重新整理頁面後再試');
+            return;
+        }
+
+        // Show loading indicator
+        const downloadBtn = document.getElementById('downloadBtn');
+        const originalText = downloadBtn.textContent;
+        downloadBtn.textContent = '截圖中...';
+        downloadBtn.disabled = true;
+
+        // Get the main score container - adjust selector based on your HTML structure
+        const scoreContainer = document.querySelector('.score-card') || document.querySelector('.container') || document.body;
+        
+        // Generate screenshot
+        const canvas = await html2canvas(scoreContainer, { 
+            useCORS: true, 
+            scale: 2, // Higher quality
+            backgroundColor: '#ffffff',
+            width: scoreContainer.scrollWidth,
+            height: scoreContainer.scrollHeight,
+            allowTaint: false,
+            logging: false
+        });
+        
+        // Convert to image data
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = imgData;
+        const fileName = `quickdraw_score_${sessionData.player_name}_${new Date().toISOString().slice(0, 10)}.png`;
+        link.download = fileName;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Reset button
+        downloadBtn.textContent = originalText;
+        downloadBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Error generating screenshot:', error);
+        alert('截圖生成失敗，請再試一次');
+        
+        // Reset button
+        const downloadBtn = document.getElementById('downloadBtn');
+        downloadBtn.textContent = '下載成績截圖';
+        downloadBtn.disabled = false;
+    }
+}
+
+function setupPDFDownload(sessionData, drawingsData) {
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    if (!downloadPdfBtn) return;
+    
+    downloadPdfBtn.textContent = '下載 PDF 報告';
+    downloadPdfBtn.href = '#';
+    downloadPdfBtn.removeAttribute('download');
+    
+    downloadPdfBtn.addEventListener('click', async function(e) {
         e.preventDefault();
         await generatePDFReport(sessionData, drawingsData);
     });
@@ -361,15 +441,40 @@ async function generatePDFReport(sessionData, drawingsData) {
         }
 
         // Show loading indicator
-        const downloadBtn = document.getElementById('downloadBtn');
-        const originalText = downloadBtn.textContent;
-        downloadBtn.textContent = '生成中...';
-        downloadBtn.disabled = true;
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const originalText = downloadPdfBtn.textContent;
+        downloadPdfBtn.textContent = '生成中...';
+        downloadPdfBtn.disabled = true;
 
         const pdf = new jsPDF('p', 'mm', 'a4');
         
-        // Set up PDF styling
-        pdf.setFont('helvetica');
+        // Try to load Chinese font
+        try {
+            // Try local font file first
+            let fontResponse;
+            try {
+                fontResponse = await fetch('./fonts/NotoSansTC.ttf');
+            } catch (e) {
+                // If local fails, try from backend
+                return;
+            }
+            
+            if (fontResponse.ok) {
+                const fontData = await fontResponse.arrayBuffer();
+                const fontBase64 = btoa(String.fromCharCode(...new Uint8Array(fontData)));
+                pdf.addFileToVFS('./fonts/NotoSansTC.ttf', fontBase64);
+                pdf.addFont('./fonts/NotoSansTC.ttf', 'NotoSansTC', 'normal');
+                pdf.setFont('NotoSansTC');
+                console.log('Chinese font loaded successfully');
+            } else {
+                throw new Error('Font file not found');
+            }
+        } catch (error) {
+            console.warn('Failed to load Chinese font, using default font:', error);
+            // Fallback to helvetica - Chinese characters may not display correctly
+            pdf.setFont('helvetica');
+        }
+        
         
         // Page 1: Summary and Results Table
         await addHeaderToPDF(pdf, sessionData);
@@ -388,29 +493,38 @@ async function generatePDFReport(sessionData, drawingsData) {
         pdf.save(fileName);
         
         // Reset button
-        downloadBtn.textContent = originalText;
-        downloadBtn.disabled = false;
+        downloadPdfBtn.textContent = originalText;
+        downloadPdfBtn.disabled = false;
         
     } catch (error) {
         console.error('Error generating PDF:', error);
         alert('PDF 生成失敗，請再試一次');
         
         // Reset button
-        const downloadBtn = document.getElementById('downloadBtn');
-        downloadBtn.textContent = '下載 PDF 報告';
-        downloadBtn.disabled = false;
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        downloadPdfBtn.textContent = '下載 PDF 報告';
+        downloadPdfBtn.disabled = false;
     }
 }
 
 async function addHeaderToPDF(pdf, sessionData) {
     // Title
     pdf.setFontSize(20);
-    pdf.setFont('helvetica', 'bold');
+    // Try to use Chinese font, fallback to helvetica
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'bold');
+    } catch (e) {
+        pdf.setFont('helvetica', 'bold');
+    }
     pdf.text('QuickDraw 成績報告', 105, 20, { align: 'center' });
     
     // Player info
     pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'normal');
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'normal');
+    } catch (e) {
+        pdf.setFont('helvetica', 'normal');
+    }
     
     let formattedTime = '未知時間';
     if (sessionData.timestamp) {
@@ -436,13 +550,21 @@ async function addResultsTableToPDF(pdf, sessionData, drawingsData) {
     
     // Table title
     pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'bold');
+    } catch (e) {
+        pdf.setFont('helvetica', 'bold');
+    }
     pdf.text('遊戲結果', 20, y);
     y += 15;
     
     // Table headers
     pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'bold');
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'bold');
+    } catch (e) {
+        pdf.setFont('helvetica', 'bold');
+    }
     const headers = ['題次', '指定', 'TOP1', '耗時', '逾時', '正確', '分數'];
     const colWidths = [20, 30, 45, 20, 20, 20, 25];
     let x = 20;
@@ -454,7 +576,11 @@ async function addResultsTableToPDF(pdf, sessionData, drawingsData) {
     y += 10;
     
     // Table data
-    pdf.setFont('helvetica', 'normal');
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'normal');
+    } catch (e) {
+        pdf.setFont('helvetica', 'normal');
+    }
     let totalScore = 0;
     
     if (drawingsData && Array.isArray(drawingsData)) {
@@ -514,7 +640,11 @@ async function addResultsTableToPDF(pdf, sessionData, drawingsData) {
     // Total score
     y += 10;
     pdf.setFontSize(14);
-    pdf.setFont('helvetica', 'bold');
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'bold');
+    } catch (e) {
+        pdf.setFont('helvetica', 'bold');
+    }
     pdf.text(`總分：${totalScore.toFixed(1)} 分`, 20, y);
 }
 
@@ -523,13 +653,21 @@ async function addPlayerDrawingsToPDF(pdf, drawingsData) {
     
     // Title
     pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'bold');
+    } catch (e) {
+        pdf.setFont('helvetica', 'bold');
+    }
     pdf.text('玩家繪圖', 20, y);
     y += 20;
     
     if (!drawingsData || !Array.isArray(drawingsData) || drawingsData.length === 0) {
         pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
+        try {
+            pdf.setFont('./fonts/NotoSansTC', 'normal');
+        } catch (e) {
+            pdf.setFont('helvetica', 'normal');
+        }
         pdf.text('無繪圖資料', 20, y);
         return;
     }
@@ -547,7 +685,11 @@ async function addPlayerDrawingsToPDF(pdf, drawingsData) {
         
         // Add drawing label
         pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'normal');
+        try {
+            pdf.setFont('./fonts/NotoSansTC', 'normal');
+        } catch (e) {
+            pdf.setFont('helvetica', 'normal');
+        }
         pdf.text(`第${drawing.round}題：${toZh(drawing.prompt)}`, x, y);
         
         try {
@@ -577,7 +719,11 @@ async function addVisualizationsToPDF(pdf) {
     
     // Title
     pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
+    try {
+        pdf.setFont('./fonts/NotoSansTC', 'bold');
+    } catch (e) {
+        pdf.setFont('helvetica', 'bold');
+    }
     pdf.text('數據視覺化', 20, y);
     y += 20;
     
@@ -585,7 +731,11 @@ async function addVisualizationsToPDF(pdf) {
     const umapImage = document.getElementById('umapImage');
     if (umapImage && umapImage.style.display !== 'none' && umapImage.src) {
         pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
+        try {
+            pdf.setFont('./fonts/NotoSansTC', 'bold');
+        } catch (e) {
+            pdf.setFont('helvetica', 'bold');
+        }
         pdf.text('嵌入向量視覺化 (UMAP)', 20, y);
         y += 10;
         
@@ -601,13 +751,21 @@ async function addVisualizationsToPDF(pdf) {
             y += 110;
         } catch (error) {
             console.error('Error adding UMAP to PDF:', error);
-            pdf.setFont('helvetica', 'normal');
+            try {
+                pdf.setFont('./fonts/NotoSansTC', 'normal');
+            } catch (e) {
+                pdf.setFont('helvetica', 'normal');
+            }
             pdf.text('UMAP 圖片載入失敗', 20, y);
             y += 20;
         }
     } else {
         pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
+        try {
+            pdf.setFont('./fonts/NotoSansTC', 'normal');
+        } catch (e) {
+            pdf.setFont('helvetica', 'normal');
+        }
         pdf.text('UMAP 視覺化不可用', 20, y);
         y += 20;
     }
@@ -616,7 +774,11 @@ async function addVisualizationsToPDF(pdf) {
     const radarImage = document.getElementById('radarImage');
     if (radarImage && radarImage.style.display !== 'none' && radarImage.src) {
         pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'bold');
+        try {
+            pdf.setFont('./fonts/NotoSansTC', 'bold');
+        } catch (e) {
+            pdf.setFont('helvetica', 'bold');
+        }
         pdf.text('繪圖準確度雷達圖', 20, y);
         y += 10;
         
@@ -630,12 +792,20 @@ async function addVisualizationsToPDF(pdf) {
             pdf.addImage(imgData, 'PNG', 20, y, 170, 100);
         } catch (error) {
             console.error('Error adding radar chart to PDF:', error);
-            pdf.setFont('helvetica', 'normal');
+            try {
+                pdf.setFont('./fonts/NotoSansTC', 'normal');
+            } catch (e) {
+                pdf.setFont('helvetica', 'normal');
+            }
             pdf.text('雷達圖載入失敗', 20, y);
         }
     } else {
         pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
+        try {
+            pdf.setFont('./fonts/NotoSansTC', 'normal');
+        } catch (e) {
+            pdf.setFont('helvetica', 'normal');
+        }
         pdf.text('雷達圖不可用', 20, y);
     }
 }
@@ -767,8 +937,11 @@ async function populateAll(sessionId) {
             if (drawingsResults.status === 'fulfilled') {
                 const drawingsData = drawingsResults.value.drawing || drawingsResults.value;
                 populateResultsTable(sessionData, drawingsData);
-                // Delay PDF setup to ensure libraries are loaded
-                setTimeout(() => setupPDFDownload(sessionData, drawingsData), 1000);
+                // Setup both screenshot and PDF download
+                setTimeout(() => {
+                    setupScreenshotDownload(sessionData, drawingsData);
+                    setupPDFDownload(sessionData, drawingsData);
+                }, 1000);
             }
         } else {
             if (playerInfo) playerInfo.innerHTML = '載入失敗';
@@ -843,8 +1016,11 @@ function loadResults() {
         populateSessionInfo(sessionData);
         populateResultsTable(sessionData, drawingsData);
         populatePlayerDrawings(drawingsData);
-        // Delay PDF setup to ensure libraries are loaded
-        setTimeout(() => setupPDFDownload(sessionData, drawingsData), 1000);
+        // Setup both screenshot and PDF download
+        setTimeout(() => {
+            setupScreenshotDownload(sessionData, drawingsData);
+            setupPDFDownload(sessionData, drawingsData);
+        }, 1000);
     } else {
         const playerInfo = document.getElementById('playerInfo');
         const resultsBody = document.getElementById('resultsBody');

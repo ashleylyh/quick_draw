@@ -6,6 +6,49 @@
     --input-bg: #f9f9f9;
     --primary: #4285f4;
     --primary-hover: #3367d6;
+    --blue-bg1: #00497c;
+    --blue-bg2: #3b5fab;
+    --blue-bg3: #5780c2;
+    --yellow-bg1: #cfb06b;
+    --pink: #eecee3;
+    --orange-1: #f2cd8c;
+    --orange-2: #f39c71;
+    --robot1: #538399;
+    --robot2: #9fbbbb;
+    --red: #e74c3c;
+}
+
+/* Import Bowlby One SC for English */
+@font-face {
+  font-family: 'BowlbyOneSC';
+  src: url('./fonts/BowlbyOneSC.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+0020-007F, U+00A0-00FF; /* Basic Latin + Latin-1 Supplement */
+}
+
+/* Import Noto Sans TC for Chinese */
+@font-face {
+  font-family: 'NotoSansTC';
+  src: url('./fonts/NotoSansTC.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+4E00-9FFF, U+3400-4DBF, U+20000-2A6DF, U+2A700-2B73F, U+2B740-2B81F, U+2B820-2CEAF, U+F900-FAFF, U+2F800-2FA1F; /* CJK Unified Ideographs */
+}
+
+/* Apply both fonts: English first, then Chinese fallback */
+body, .container, .score-card, .btn, table, h1, h2, h3, h4, h5, h6, .player-info, .total-score-section, .player-drawings, .umap-visualization, .radar-visualization {
+  font-family: 'BowlbyOneSC', 'NotoSansTC', sans-serif;
+}
+
+/* Optional: force English elements to use BowlbyOneSC */
+:lang(en), .en {
+  font-family: 'BowlbyOneSC', sans-serif;
+}
+
+/* Optional: force Chinese elements to use NotoSansTC */
+:lang(zh), .zh, body[lang="zh-TW"] {
+  font-family: 'NotoSansTC', sans-serif;
 }
 
 * {
@@ -24,23 +67,46 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    /* max-width: 800px; */
+    max-width: 75%;
     margin: 0 auto;
 }
 
 .score-card {
-    background: var(--card-bg);
+    /* background: var(--blue-bg); */
+    /* 45-degree gradient from top left to bottom right, using three colors */
+    background: linear-gradient(45deg, var(--blue-bg3), var(--blue-bg2), var(--blue-bg1));
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     padding: 24px;
 }
 
+.game-title {
+    text-align: center;
+    color: var(--orange-1);
+    margin-bottom: 20px;
+    font-size: 48px;
+    font-weight: 600;
+}
+
 .score-header {
     text-align: center;
-    color: var(--text);
+    color: var(--card-bg);
     margin-bottom: 20px;
-    font-size: 24px;
+    font-size: 36px;
     font-weight: 600;
+}
+
+.player-label {
+    color: var(--text);
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.player-value {
+    color: var(--blue-bg2);
+    font-weight: 600;
+    margin-right: 12px;
 }
 
 .player-info {
@@ -48,7 +114,7 @@ body {
     padding: 12px 16px;
     border-radius: 8px;
     margin-bottom: 20px;
-    font-size: 14px;
+    font-size: 20px;
     border: 1px solid var(--border);
 }
 
@@ -56,7 +122,7 @@ body {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
-    font-size: 14px;
+    font-size: 20px;
 }
 
 .results-table th,
@@ -83,9 +149,9 @@ body {
 }
 
 .player-drawings h2 {
-    font-size: 18px;
+    font-size: 24px;
     margin-bottom: 16px;
-    color: var(--text);
+    color: var(--card-bg);
 }
 
 .drawings-grid {
@@ -103,10 +169,10 @@ body {
 }
 
 .drawing-label {
-    font-size: 12px;
+    font-size: 18px;
     margin-bottom: 8px;
-    color: var(--text);
-    font-weight: 500;
+    color: var(--blue-bg2);
+    font-weight: 550;
 }
 
 .drawing-image {
@@ -124,9 +190,9 @@ body {
 }
 
 .umap-visualization h2 {
-    font-size: 18px;
+    font-size: 24px;
     margin-bottom: 16px;
-    color: var(--text);
+    color: var(--card-bg);
 }
 
 .umap-container {
@@ -153,9 +219,9 @@ body {
 }
 
 .radar-visualization h2 {
-    font-size: 18px;
+    font-size: 24px;
     margin-bottom: 16px;
-    color: var(--text);
+    color: var(--card-bg);
 }
 
 .radar-container {
@@ -177,7 +243,12 @@ body {
 }
 
 .loading-message {
-    color: #666;
+    color: var(--input-bg);
+    font-style: italic;
+    padding: 20px;
+}
+.loading-message-dark {
+    color: var(--text);
     font-style: italic;
     padding: 20px;
 }
@@ -192,14 +263,15 @@ body {
 .btn {
     display: inline-block;
     padding: 8px 16px;
-    border: 1px solid var(--border);
+    border: 1px;
     text-decoration: none;
     color: var(--text);
     border-radius: 8px;
     background: var(--input-bg);
     transition: all 0.2s ease;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 500;
 }
 
 .btn:hover {
@@ -207,14 +279,14 @@ body {
 }
 
 .btn.primary {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
+    background: var(--orange-1);
+    color: var(--text);
+    /* border-color: var(--primary); */
 }
 
 .btn.primary:hover {
-    background: var(--primary-hover);
-    border-color: var(--primary-hover);
+    background: var(--orange-2);
+    /* border-color: var(--primary-hover); */
 }
 
 /* Total score section */
@@ -225,14 +297,14 @@ body {
 }
 
 .total-score-section h2 {
-    font-size: 18px;
+    font-size: 30px;
     margin-bottom: 16px;
-    color: var(--text);
+    color: var(--card-bg);
 }
 
 .total-score-display {
-    background: var(--primary);
-    color: white;
+    background: var(--orange-1);
+    color: var(--red);
     border-radius: 12px;
     padding: 20px;
     display: inline-block;
@@ -268,14 +340,14 @@ body {
     text-align: center;
     font-weight: 600;
     border-bottom: 1px solid var(--border);
-    font-size: 14px;
+    font-size: 18px;
 }
 
 .results-table td {
     padding: 10px 8px;
     text-align: center;
     border-bottom: 1px solid var(--border);
-    font-size: 13px;
+    font-size: 16px;
 }
 
 /* Correctness indicators */
@@ -283,7 +355,7 @@ body {
     padding: 4px 8px;
     border-radius: 4px;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 16px;
 }
 
 .correct-indicator.correct {
@@ -299,6 +371,7 @@ body {
 /* Score styling */
 .score-cell {
     font-weight: bold;
+    font-size: 20px;
     color: var(--primary);
 }
 

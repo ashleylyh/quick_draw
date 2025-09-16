@@ -16,6 +16,16 @@
   --radius: 16px;
   --input-bg: #f9fafb;
   --hover-bg: #f3f4f6;
+  --blue-bg1: #00497c;
+  --blue-bg2: #3b5fab;
+  --blue-bg3: #5780c2;
+  --yellow-bg1: #cfb06b;
+  --pink: #eecee3;
+  --orange-1: #f2cd8c;
+  --orange-2: #f39c71;
+  --robot1: #538399;
+  --robot2: #9fbbbb;
+  --red: #e74c3c;
 }
 
 * { box-sizing: border-box; }
@@ -72,6 +82,17 @@ header.card {
   min-width: 300px;
 }
 
+.header-text h1 {
+  font-size: 48px;
+  color: var(--blue-bg2);
+}
+
+.header-text p {
+  font-size: 24px;
+  color: var(--blue-bg2);
+  font-weight: 600;
+}
+
 .header-image {
   flex: 0 0 auto;
   display: flex;
@@ -80,6 +101,7 @@ header.card {
   transition: opacity 0.3s ease, transform 0.3s ease;
   opacity: 1;
   transform: scale(1);
+  width: 100%; /* Ensure container takes full width */
 }
 
 .header-image.hidden {
@@ -91,6 +113,7 @@ header.card {
 .header-image img {
   /* max-width: clamp(120px, 20vw, 200px); */
   height: auto;
+  width: 80%;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,.1);
   transition: transform 0.3s ease;
