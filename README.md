@@ -1,133 +1,88 @@
 
+# Quick Draw — AI Drawing Duel
 
-todo:
+A lightweight web app for a Quick, Draw!-style AI drawing duel. Frontend lets players draw sketches and the backend returns model predictions, embeddings, and visualizations (UMAP / radar). This README explains setup, how to run the project, and documents the main backend API and data layout.
 
-[ok] question randomness
-[ok] frontend
+## Prerequisites
+- Python 3.12 (pyproject specifies 3.12.3)
+- Redis server
+- Recommended: Create a virtual environment using uv for Python
 
-[ok] database
-[ok] translation (zh)
+## Clone the Repository
+```bash
+git clone https://github.com/ashleylyh/quick_draw.git
+cd quick_draw
+```
 
-[ok] clustering plot automate (almost) (faster)
-[ok] how do the prob for easy and normal calculate
-[] pdf download -> layout, chinese word
-[ok] transcript design
-[] qrcode generate
-[ok] real time prob? (check prob correctness)
-[] frontend wording
-[ok] 雷達圖
+## Install Python dependencies
+The project uses `pyproject.toml`. Using UV to install dependencies into your environment:
 
+```bash
+uv sync
+source .venv/bin/activate
 
-umap workflow:
-in score.js page, call the umap api -> 
-umap api fetch embedding and prompt using drawing api
-call the asynv function to process umap 
-return by function and upload to db and return from umap api to go back to score page
-visualize on page
+deactivate # exit a virtual env
+```
 
-[ok] upload background embedding to db -> see if i can only use the umap bg + joblib file
+## Install Redis
+For redis database installation, please refer to this document:
 
-redis -> fucntion
+https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/
+
 ---
-### Frontend Command
-```
-python -m http.server 3000
-```
-### Backend Command
-```
-python app.py
-```
-### Start Redis DB
-```
+
+## Quick start (development)
+Open three terminals (remember to activate vitrual env)
+
+1) Start Redis (default port 6379)
+
+```bash
 redis-server
 ```
-### Flush Redis
-open a new terminal session
+
+2) Start backend API (it serves on localhost port 8000), for API docs, access through http://localhost:8000/docs#/
+```bash
+# from project root
+cd backend
+python app.py
 ```
-redis-cli flushall
+
+3) Serve frontend (static files) — simple Python HTTP server
+
+```bash
+cd frontend
+python -m http.server 3000
+# then open http://localhost:3000 in a browser
 ```
-Ctrl+F5 -> hard refresh webpage
-Ctrl+C  -> kill the process
+
+> Tip: If you get CORS issues in production, restrict `allow_origins` in `backend/app.py` instead of `"*"`.
 
 ---
-## API Endpoint
-```@router.post("/api/sessions")```\
-Creates a new game session for a player.
 
-How it works:
-- Receives player info (player_name, gender, age, difficulty) as JSON.
-- Generates a unique session_id.
-- Builds game rounds and prompts based on difficulty.
-- Stores session data in Redis.
-- Returns session_id, rounds, and prompts to the frontend.
+## Project layout (important files)
+- `backend/` — FastAPI backend and ML helpers
+    - `app.py` — FastAPI app entrypoint
+    - `api.py` — REST endpoints (sessions, predict, umap, radar, qr, uploads)
+    - `ml_utils.py` — model loading and preprocessing utilities
+    - `plotting_api.py` — UMAP / radar plotting helpers and Redis caching
+    - `redis_utils.py` — Redis connection helper
+    - `game_logic.py` — building rounds and prompts
+- `frontend/` — static site (HTML/CSS/JS)
+    - `index.html` — landing / game pages
+    - `score.html` — results page (UMAP, radar, drawings)
+    - `sketch.js`, `score.js` — frontend logic
+    - `score_style.css`, `sketch_style.css` — styles
+- `model/` — pretrained model artifacts (may contain `doodleNet-model.keras`)
+- `feature/`— background embeddings and cached datasets
+---
+## UMAP model file
+please download the umap joblib file via:\
+https://drive.google.com/file/d/15NLciurQcZmeL0ToH-XFJCODLTK8Z8aG/view?usp=sharing
 
+---
 
-```@router.post("/api/predict-realtime")```\
-Provides real-time predictions for a drawing (used for live preview).
-
-How it works:
-
-- Receives base64-encoded image data and a list of choices.
-- Decodes and preprocesses the image.
-- Runs the image through the ML model.
-- Returns prediction probabilities for the specified choices (or all classes if choices are empty).
-
-```@router.post("/api/predict")```\
-Submits a finished drawing for a round and gets predictions.
-
-How it works:
-
-- Receives session info, round number, prompt, time spent, timeout flag, and the drawing image (as file upload).
-- Reads and preprocesses the image.
-- Runs the image through the ML model for predictions and embedding.
-- Stores all data (including image as base64) in Redis.
-- Returns predictions and embedding to the frontend.
-
-```@router.get("/api/health")```\
-Checks the health/status of the backend and models.
-
-How it works:
-
-- Returns a JSON object with status, model loaded flags, and number of classes.
+## Credits & Acknowledgements
+- Dataset: Google Quick, Draw! Dataset
+- Model inspiration / original repo: https://github.com/yining1023/doodleNet
 
 
-## Database
-
-
-1. Session Data
-
-    Key: ```session:{session_id}```
-
-    Stored Data (Hash):
-    - player_name
-    - gender
-    - age
-    - difficulty
-    - rounds (JSON string: list of choices for each round) [6][?]
-    - prompts (JSON string: list of prompts for each round) [6] each round pick 1 from ?
-    - timestamp
-
-
-2. Drawing Data (per round)
-
-    Key: ```drawing:{session_id}:{round}```
-
-    Stored Data (Hash):
-    - session_id
-    - round
-    - prompt
-    - time_spent_sec
-    - timed_out
-    - image_base64 (base64-encoded image data)
-    - predictions (JSON string: probability map for choices)
-    - round_choices (JSON string: choices for this round)
-    - embedding (JSON string: model embedding vector)
-    - timestamp
-
-3. Drawings List (per session)
-
-    Key: ```session:{session_id}:drawings```
-
-    Stored Data (List):
-    - List of drawing IDs (drawing:{session_id}:{round}) for all rounds in this session
-    
