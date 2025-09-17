@@ -1,7 +1,7 @@
 import {toZh, formatTimestamp, buildCSVFromData } from './utils.js';
 
-// Import jsPDF and html2canvas from CDN (will be loaded in HTML)
-// These will be available as global variables: jsPDF and html2canvas
+// Import html2canvas from CDN (will be loaded in HTML)
+// QR codes are generated on the backend and stored in Redis database
 
 // Individual API-calling functions
 async function fetchSessionResults(sessionId) {
@@ -101,10 +101,10 @@ function populateSessionInfo(sessionData) {
     playerInfo.innerHTML = `
         <span class="player-label">參賽者：</span>
         <span class="player-value">${sessionData.player_name || '未知'}</span>
-        &emsp;&emsp;
+        &emsp;&emsp;&emsp;
         <span class="player-label">難度：</span>
         <span class="player-value">${sessionData.difficulty === 'hard' ? '困難' : '簡單'}</span>
-        &emsp;&emsp;
+        &emsp;&emsp;&emsp;
         <span class="player-label">時間：</span>
         <span class="player-value">${formattedTime}</span>
     `;
@@ -129,6 +129,7 @@ function populateResultsTable(sessionData, drawingsData) {
     }
 
     let totalScore = 0;
+    let totalTime = 0;
     const rows = (drawingsData || []).map(d => {
         const predictions = typeof d.predictions === 'string' ? JSON.parse(d.predictions) : (d.predictions || {});
         const roundChoices = sessionRounds[d.round - 1] || [];
@@ -153,6 +154,10 @@ function populateResultsTable(sessionData, drawingsData) {
         // Calculate score - use the probability for the correct prompt
         const score = predictions[d.prompt] ? (predictions[d.prompt] * 100) : 0;
         totalScore += score;
+        
+        // Add time to total
+        totalTime += parseFloat(d.time_spent_sec) || 0;
+        
         const scoreDisplay = `<span class="score-cell">${score.toFixed(1)}</span>`;
         
         return `<tr>
@@ -168,14 +173,22 @@ function populateResultsTable(sessionData, drawingsData) {
     
     resultsBody.innerHTML = rows;
     
-    // Update total score display
+    // Update total score and time displays
     updateTotalScore(totalScore);
+    updateTotalTime(totalTime);
 }
 
 function updateTotalScore(totalScore) {
     const totalScoreValue = document.getElementById('totalScoreValue');
     if (totalScoreValue) {
         totalScoreValue.textContent = totalScore.toFixed(1);
+    }
+}
+
+function updateTotalTime(totalTime) {
+    const totalTimeValue = document.getElementById('totalTimeValue');
+    if (totalTimeValue) {
+        totalTimeValue.textContent = totalTime.toFixed(1);
     }
 }
 
@@ -384,7 +397,7 @@ async function generateScreenshot(sessionData, drawingsData) {
         // Create download link
         const link = document.createElement('a');
         link.href = imgData;
-        const fileName = `quickdraw_score_${sessionData.player_name}_${new Date().toISOString().slice(0, 10)}.png`;
+        const fileName = `quickdraw_score_${sessionData.player_name}_${sessionData.session_id}.png`;
         link.download = fileName;
         
         // Trigger download
@@ -407,406 +420,248 @@ async function generateScreenshot(sessionData, drawingsData) {
     }
 }
 
-function setupPDFDownload(sessionData, drawingsData) {
-    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-    if (!downloadPdfBtn) return;
+// QR Code functionality
+function setupQRDownload(sessionData, drawingsData) {
+    const qrBtn = document.getElementById('qrBtn');
+    const qrModal = document.getElementById('qrModal');
+    const qrCloseBtn = document.getElementById('qrCloseBtn');
     
-    downloadPdfBtn.textContent = '下載 PDF 報告';
-    downloadPdfBtn.href = '#';
-    downloadPdfBtn.removeAttribute('download');
+    if (!qrBtn || !qrModal || !qrCloseBtn) return;
     
-    downloadPdfBtn.addEventListener('click', async function(e) {
+    // QR button click handler
+    qrBtn.addEventListener('click', async function(e) {
         e.preventDefault();
-        await generatePDFReport(sessionData, drawingsData);
+        await generateQRCode(sessionData, drawingsData);
+    });
+    
+    // Close modal handlers
+    qrCloseBtn.addEventListener('click', function() {
+        qrModal.style.display = 'none';
+    });
+    
+    qrModal.addEventListener('click', function(e) {
+        if (e.target === qrModal) {
+            qrModal.style.display = 'none';
+        }
     });
 }
 
-async function generatePDFReport(sessionData, drawingsData) {
+async function generateQRCode(sessionData, drawingsData) {
+    const qrModal = document.getElementById('qrModal');
+    const qrCodeContainer = document.getElementById('qrCodeContainer');
+    const qrStatus = document.getElementById('qrStatus');
+    const qrBtn = document.getElementById('qrBtn');
+    const qrTimestamp = document.getElementById('qrTimestamp');
+    
     try {
-        // Check if jsPDF and html2canvas are available
-        if (typeof html2canvas === 'undefined') {
-            alert('html2canvas 庫未載入，請重新整理頁面後再試');
-            return;
+        // Show modal and loading state
+        qrModal.style.display = 'flex';
+        qrCodeContainer.innerHTML = '';
+        qrStatus.textContent = '檢查現有 QR 碼...';
+        qrStatus.className = '';
+        
+        // Clear timestamp
+        if (qrTimestamp) {
+            qrTimestamp.style.display = 'none';
+            qrTimestamp.textContent = '';
         }
         
-        // Check for jsPDF in different possible locations
-        let jsPDF;
-        if (window.jspdf && window.jspdf.jsPDF) {
-            jsPDF = window.jspdf.jsPDF;
-        } else if (window.jsPDF) {
-            jsPDF = window.jsPDF;
+        // Disable QR button
+        const originalText = qrBtn.textContent;
+        qrBtn.textContent = '檢查中...';
+        qrBtn.disabled = true;
+        
+        // Check if QR code already exists in Redis
+        const existingQR = await checkExistingQRCode(sessionData.session_id);
+        
+        let qrImageBase64;
+        let shareableUrl;
+        // let cacheStatus;
+        let createdAt;
+        
+        if (existingQR.exists) {
+            qrStatus.textContent = '使用資料庫中的 QR 碼...';
+            qrImageBase64 = existingQR.qrImageBase64;
+            shareableUrl = existingQR.shareableUrl;
+            // cacheStatus = '（從資料庫載入）';
+            createdAt = existingQR.createdAt;
         } else {
-            alert('jsPDF 庫未載入，請重新整理頁面後再試');
-            return;
-        }
-
-        // Show loading indicator
-        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-        const originalText = downloadPdfBtn.textContent;
-        downloadPdfBtn.textContent = '生成中...';
-        downloadPdfBtn.disabled = true;
-
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        // Try to load Chinese font
-        try {
-            // Try local font file first
-            let fontResponse;
-            try {
-                fontResponse = await fetch('./fonts/NotoSansTC.ttf');
-            } catch (e) {
-                // If local fails, try from backend
-                return;
-            }
+            // Generate screenshot first
+            qrStatus.textContent = '生成截圖中...';
+            const screenshotBlob = await generateScreenshotBlob(sessionData);
             
-            if (fontResponse.ok) {
-                const fontData = await fontResponse.arrayBuffer();
-                const fontBase64 = btoa(String.fromCharCode(...new Uint8Array(fontData)));
-                pdf.addFileToVFS('./fonts/NotoSansTC.ttf', fontBase64);
-                pdf.addFont('./fonts/NotoSansTC.ttf', 'NotoSansTC', 'normal');
-                pdf.setFont('NotoSansTC');
-                console.log('Chinese font loaded successfully');
-            } else {
-                throw new Error('Font file not found');
-            }
-        } catch (error) {
-            console.warn('Failed to load Chinese font, using default font:', error);
-            // Fallback to helvetica - Chinese characters may not display correctly
-            pdf.setFont('helvetica');
+            // Upload screenshot to backend
+            qrStatus.textContent = '上傳截圖中...';
+            shareableUrl = await uploadScreenshot(screenshotBlob, sessionData);
+            
+            // Generate QR code on backend and store in Redis
+            qrStatus.textContent = '生成 QR 碼並存入資料庫...';
+            const qrResult = await generateQRCodeOnBackend(sessionData.session_id, sessionData.player_name, shareableUrl);
+            qrImageBase64 = qrResult.qrImageBase64;
+            // cacheStatus = '（新生成並存入資料庫）';
+            createdAt = qrResult.createdAt;
         }
         
+        // Display QR code from base64 data
+        qrStatus.textContent = '顯示 QR 碼...';
         
-        // Page 1: Summary and Results Table
-        await addHeaderToPDF(pdf, sessionData);
-        await addResultsTableToPDF(pdf, sessionData, drawingsData);
+        // Create image element for QR code
+        const img = document.createElement('img');
+        img.src = `data:image/png;base64,${qrImageBase64}`;
+        img.style.border = '1px solid #ddd';
+        img.style.borderRadius = '8px';
+        img.style.backgroundColor = '#ffffff';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+        img.style.maxWidth = '256px';
+        img.style.height = 'auto';
         
-        // Page 2: Player Drawings
-        pdf.addPage();
-        await addPlayerDrawingsToPDF(pdf, drawingsData);
+        // Add the image to the container
+        qrCodeContainer.appendChild(img);
         
-        // Page 3: Visualizations
-        pdf.addPage();
-        await addVisualizationsToPDF(pdf);
+        // Show success message with cache status
+        qrStatus.textContent = `完成！掃描 QR 碼即可下載`;
+        qrStatus.className = 'success';
         
-        // Save the PDF
-        const fileName = `quickdraw_report_${sessionData.player_name}_${new Date().toISOString().slice(0, 10)}.pdf`;
-        pdf.save(fileName);
+        // Add timestamp information if available
+        if (createdAt && qrTimestamp) {
+            const timestamp = new Date(createdAt).toLocaleString('zh-TW');
+            qrTimestamp.textContent = `建立時間: ${timestamp}`;
+            qrTimestamp.style.display = 'block';
+        }
         
         // Reset button
-        downloadPdfBtn.textContent = originalText;
-        downloadPdfBtn.disabled = false;
+        qrBtn.textContent = originalText;
+        qrBtn.disabled = false;
         
     } catch (error) {
-        console.error('Error generating PDF:', error);
-        alert('PDF 生成失敗，請再試一次');
+        console.error('Error generating QR code:', error);
+        qrStatus.textContent = `生成失敗: ${error.message}`;
+        qrStatus.className = 'error';
         
         // Reset button
-        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-        downloadPdfBtn.textContent = '下載 PDF 報告';
-        downloadPdfBtn.disabled = false;
+        qrBtn.textContent = originalText;
+        qrBtn.disabled = false;
     }
 }
 
-async function addHeaderToPDF(pdf, sessionData) {
-    // Title
-    pdf.setFontSize(20);
-    // Try to use Chinese font, fallback to helvetica
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'bold');
-    } catch (e) {
-        pdf.setFont('helvetica', 'bold');
+async function generateScreenshotBlob(sessionData) {
+    // Check if html2canvas is available
+    if (typeof html2canvas === 'undefined') {
+        throw new Error('html2canvas 庫未載入');
     }
-    pdf.text('QuickDraw 成績報告', 105, 20, { align: 'center' });
-    
-    // Player info
-    pdf.setFontSize(12);
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'normal');
-    } catch (e) {
-        pdf.setFont('helvetica', 'normal');
-    }
-    
-    let formattedTime = '未知時間';
-    if (sessionData.timestamp) {
-        try {
-            formattedTime = formatTimestamp(sessionData.timestamp);
-        } catch (error) {
-            formattedTime = sessionData.timestamp;
-        }
-    }
-    
-    const playerName = sessionData.player_name || '未知';
-    const difficulty = sessionData.difficulty === 'hard' ? '困難' : '簡單';
-    
-    pdf.text(`參賽者：${playerName}`, 20, 35);
-    pdf.text(`難度：${difficulty}`, 20, 45);
-    pdf.text(`時間：${formattedTime}`, 20, 55);
-    
-    return 65; // Return next Y position
-}
 
-async function addResultsTableToPDF(pdf, sessionData, drawingsData) {
-    let y = 75;
+    // Get the main score container
+    const scoreContainer = document.querySelector('.score-card') || document.querySelector('.container') || document.body;
     
-    // Table title
-    pdf.setFontSize(14);
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'bold');
-    } catch (e) {
-        pdf.setFont('helvetica', 'bold');
-    }
-    pdf.text('遊戲結果', 20, y);
-    y += 15;
-    
-    // Table headers
-    pdf.setFontSize(10);
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'bold');
-    } catch (e) {
-        pdf.setFont('helvetica', 'bold');
-    }
-    const headers = ['題次', '指定', 'TOP1', '耗時', '逾時', '正確', '分數'];
-    const colWidths = [20, 30, 45, 20, 20, 20, 25];
-    let x = 20;
-    
-    headers.forEach((header, i) => {
-        pdf.text(header, x, y);
-        x += colWidths[i];
+    // Generate screenshot
+    const canvas = await html2canvas(scoreContainer, { 
+        useCORS: true, 
+        scale: 2, // Higher quality
+        backgroundColor: '#ffffff',
+        width: scoreContainer.scrollWidth,
+        height: scoreContainer.scrollHeight,
+        allowTaint: false,
+        logging: false
     });
-    y += 10;
     
-    // Table data
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'normal');
-    } catch (e) {
-        pdf.setFont('helvetica', 'normal');
-    }
-    let totalScore = 0;
-    
-    if (drawingsData && Array.isArray(drawingsData)) {
-        let sessionRounds = [];
-        if (typeof sessionData.rounds === 'string') {
-            try {
-                sessionRounds = JSON.parse(sessionData.rounds);
-            } catch (e) {
-                sessionRounds = [];
+    // Convert canvas to blob
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (blob) {
+                resolve(blob);
+            } else {
+                reject(new Error('無法生成截圖'));
             }
-        } else if (Array.isArray(sessionData.rounds)) {
-            sessionRounds = sessionData.rounds;
+        }, 'image/png');
+    });
+}
+
+// QR Code checking and generation functions
+async function checkExistingQRCode(sessionId) {
+    try {
+        const response = await fetch(`http://localhost:8000/api/qr-code/${sessionId}`);
+        if (!response.ok) {
+            if (response.status === 404) {
+                return { exists: false };
+            }
+            throw new Error(`檢查失敗: ${response.status}`);
         }
         
-        drawingsData.forEach(d => {
-            const predictions = typeof d.predictions === 'string' ? JSON.parse(d.predictions) : (d.predictions || {});
-            const roundChoices = sessionRounds[d.round - 1] || [];
-            let filteredPredictions = predictions;
-            if (roundChoices.length > 0) {
-                filteredPredictions = {};
-                roundChoices.forEach(choice => {
-                    if (predictions[choice] !== undefined) {
-                        filteredPredictions[choice] = predictions[choice];
-                    }
-                });
-            }
-            const sorted = Object.entries(filteredPredictions).map(([name,p])=>({name,p})).sort((a,b)=>b.p-a.p);
-            const top1 = sorted[0] ? `${toZh(sorted[0].name)} (${(sorted[0].p*100).toFixed(1)}%)` : '-';
-            const isCorrect = sorted[0] && sorted[0].name === d.prompt;
-            const score = predictions[d.prompt] ? (predictions[d.prompt] * 100) : 0;
-            totalScore += score;
-            
-            x = 20;
-            const rowData = [
-                d.round.toString(),
-                toZh(d.prompt),
-                top1.length > 20 ? top1.substring(0, 17) + '...' : top1,
-                `${d.time_spent_sec}s`,
-                d.timed_out ? '是' : '否',
-                isCorrect ? '✓' : '✗',
-                score.toFixed(1)
-            ];
-            
-            rowData.forEach((data, i) => {
-                pdf.text(data, x, y);
-                x += colWidths[i];
-            });
-            y += 8;
-            
-            if (y > 270) { // If near bottom of page, add new page
-                pdf.addPage();
-                y = 30;
-            }
+        const result = await response.json();
+        if (result.status === 'exists') {
+            return {
+                exists: true,
+                qrImageBase64: result.qr_image_base64,
+                shareableUrl: result.shareable_url,
+                createdAt: result.created_at
+            };
+        } else {
+            return { exists: false };
+        }
+    } catch (error) {
+        console.warn('Error checking existing QR code:', error);
+        // If check fails, proceed with new generation
+        return { exists: false };
+    }
+}
+
+async function generateQRCodeOnBackend(sessionId, playerName, shareableUrl) {
+    try {
+        const formData = new FormData();
+        formData.append('sessionId', sessionId);
+        formData.append('playerName', playerName);
+        formData.append('shareableUrl', shareableUrl);
+        
+        const response = await fetch('http://localhost:8000/api/generate-qr-code', {
+            method: 'POST',
+            body: formData
         });
-    }
-    
-    // Total score
-    y += 10;
-    pdf.setFontSize(14);
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'bold');
-    } catch (e) {
-        pdf.setFont('helvetica', 'bold');
-    }
-    pdf.text(`總分：${totalScore.toFixed(1)} 分`, 20, y);
-}
-
-async function addPlayerDrawingsToPDF(pdf, drawingsData) {
-    let y = 30;
-    
-    // Title
-    pdf.setFontSize(16);
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'bold');
-    } catch (e) {
-        pdf.setFont('helvetica', 'bold');
-    }
-    pdf.text('玩家繪圖', 20, y);
-    y += 20;
-    
-    if (!drawingsData || !Array.isArray(drawingsData) || drawingsData.length === 0) {
-        pdf.setFontSize(12);
-        try {
-            pdf.setFont('./fonts/NotoSansTC', 'normal');
-        } catch (e) {
-            pdf.setFont('helvetica', 'normal');
-        }
-        pdf.text('無繪圖資料', 20, y);
-        return;
-    }
-    
-    // Add drawings in a grid
-    const imagesPerRow = 2;
-    const imageWidth = 80;
-    const imageHeight = 60;
-    const spacing = 10;
-    let col = 0;
-    
-    for (let i = 0; i < drawingsData.length; i++) {
-        const drawing = drawingsData[i];
-        const x = 20 + col * (imageWidth + spacing);
         
-        // Add drawing label
-        pdf.setFontSize(10);
-        try {
-            pdf.setFont('./fonts/NotoSansTC', 'normal');
-        } catch (e) {
-            pdf.setFont('helvetica', 'normal');
-        }
-        pdf.text(`第${drawing.round}題：${toZh(drawing.prompt)}`, x, y);
-        
-        try {
-            // Add the drawing image
-            const imageData = `data:image/png;base64,${drawing.original_image_data}`;
-            pdf.addImage(imageData, 'PNG', x, y + 5, imageWidth, imageHeight);
-        } catch (error) {
-            console.error('Error adding image to PDF:', error);
-            pdf.text('圖片載入失敗', x, y + 30);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`QR 碼生成失敗: ${response.status} ${errorText}`);
         }
         
-        col++;
-        if (col >= imagesPerRow) {
-            col = 0;
-            y += imageHeight + 25;
-            
-            if (y > 200) { // If near bottom of page, add new page
-                pdf.addPage();
-                y = 30;
-            }
+        const result = await response.json();
+        if (result.status === 'success') {
+            return {
+                qrImageBase64: result.qr_image_base64,
+                shareableUrl: result.shareable_url,
+                createdAt: result.created_at,
+                fromCache: result.from_cache || false
+            };
+        } else {
+            throw new Error(result.error || 'QR 碼生成失敗');
         }
+    } catch (error) {
+        console.error('Error generating QR code on backend:', error);
+        throw error;
     }
 }
 
-async function addVisualizationsToPDF(pdf) {
-    let y = 30;
+async function uploadScreenshot(blob, sessionData) {
+    const formData = new FormData();
+    formData.append('screenshot', blob, `quickdraw_${sessionData.player_name}_${sessionData.session_id}.png`);
+    formData.append('sessionId', sessionData.session_id || 'unknown');
+    formData.append('playerName', sessionData.player_name || 'unknown');
     
-    // Title
-    pdf.setFontSize(16);
-    try {
-        pdf.setFont('./fonts/NotoSansTC', 'bold');
-    } catch (e) {
-        pdf.setFont('helvetica', 'bold');
-    }
-    pdf.text('數據視覺化', 20, y);
-    y += 20;
+    const response = await fetch('http://localhost:8000/api/upload-screenshot', {
+        method: 'POST',
+        body: formData
+    });
     
-    // UMAP Visualization
-    const umapImage = document.getElementById('umapImage');
-    if (umapImage && umapImage.style.display !== 'none' && umapImage.src) {
-        pdf.setFontSize(12);
-        try {
-            pdf.setFont('./fonts/NotoSansTC', 'bold');
-        } catch (e) {
-            pdf.setFont('helvetica', 'bold');
-        }
-        pdf.text('嵌入向量視覺化 (UMAP)', 20, y);
-        y += 10;
-        
-        try {
-            // Convert image to canvas and then to PDF
-            const canvas = await html2canvas(umapImage, { 
-                useCORS: true, 
-                scale: 1,
-                backgroundColor: '#ffffff'
-            });
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 20, y, 170, 100);
-            y += 110;
-        } catch (error) {
-            console.error('Error adding UMAP to PDF:', error);
-            try {
-                pdf.setFont('./fonts/NotoSansTC', 'normal');
-            } catch (e) {
-                pdf.setFont('helvetica', 'normal');
-            }
-            pdf.text('UMAP 圖片載入失敗', 20, y);
-            y += 20;
-        }
-    } else {
-        pdf.setFontSize(12);
-        try {
-            pdf.setFont('./fonts/NotoSansTC', 'normal');
-        } catch (e) {
-            pdf.setFont('helvetica', 'normal');
-        }
-        pdf.text('UMAP 視覺化不可用', 20, y);
-        y += 20;
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`上傳失敗: ${response.status} ${errorText}`);
     }
     
-    // Radar Chart
-    const radarImage = document.getElementById('radarImage');
-    if (radarImage && radarImage.style.display !== 'none' && radarImage.src) {
-        pdf.setFontSize(12);
-        try {
-            pdf.setFont('./fonts/NotoSansTC', 'bold');
-        } catch (e) {
-            pdf.setFont('helvetica', 'bold');
-        }
-        pdf.text('繪圖準確度雷達圖', 20, y);
-        y += 10;
-        
-        try {
-            const canvas = await html2canvas(radarImage, { 
-                useCORS: true, 
-                scale: 1,
-                backgroundColor: '#ffffff'
-            });
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 20, y, 170, 100);
-        } catch (error) {
-            console.error('Error adding radar chart to PDF:', error);
-            try {
-                pdf.setFont('./fonts/NotoSansTC', 'normal');
-            } catch (e) {
-                pdf.setFont('helvetica', 'normal');
-            }
-            pdf.text('雷達圖載入失敗', 20, y);
-        }
+    const result = await response.json();
+    if (result.status === 'success' && result.shareableUrl) {
+        console.log('Screenshot uploaded successfully');
+        return result.shareableUrl;
     } else {
-        pdf.setFontSize(12);
-        try {
-            pdf.setFont('./fonts/NotoSansTC', 'normal');
-        } catch (e) {
-            pdf.setFont('helvetica', 'normal');
-        }
-        pdf.text('雷達圖不可用', 20, y);
+        throw new Error(result.error || '上傳失敗');
     }
 }
 
@@ -937,10 +792,10 @@ async function populateAll(sessionId) {
             if (drawingsResults.status === 'fulfilled') {
                 const drawingsData = drawingsResults.value.drawing || drawingsResults.value;
                 populateResultsTable(sessionData, drawingsData);
-                // Setup both screenshot and PDF download
+                // Setup screenshot download and QR code
                 setTimeout(() => {
                     setupScreenshotDownload(sessionData, drawingsData);
-                    setupPDFDownload(sessionData, drawingsData);
+                    setupQRDownload(sessionData, drawingsData);
                 }, 1000);
             }
         } else {
@@ -1016,10 +871,10 @@ function loadResults() {
         populateSessionInfo(sessionData);
         populateResultsTable(sessionData, drawingsData);
         populatePlayerDrawings(drawingsData);
-        // Setup both screenshot and PDF download
+        // Setup screenshot download and QR code
         setTimeout(() => {
             setupScreenshotDownload(sessionData, drawingsData);
-            setupPDFDownload(sessionData, drawingsData);
+            setupQRDownload(sessionData, drawingsData);
         }, 1000);
     } else {
         const playerInfo = document.getElementById('playerInfo');
@@ -1044,8 +899,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Log library availability on page load
     console.log('Page loaded, checking libraries...');
     console.log('html2canvas available:', typeof html2canvas !== 'undefined');
-    console.log('jsPDF available:', typeof window.jsPDF !== 'undefined');
-    console.log('jspdf available:', typeof window.jspdf !== 'undefined');
+    console.log('qrcode available:', typeof QRCode !== 'undefined');
     
     loadResults();
 });

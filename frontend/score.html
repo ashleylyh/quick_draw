@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+<!DOCTYPE html>   <!-- Screenshot Generation Library -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <!-- QR codes are now generated on the backend, no frontend library needed -->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -6,9 +8,10 @@
     <title>QuickDraw 成績</title>
     <link rel="stylesheet" href="score_style.css">
     <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico">
-    <!-- PDF Generation Libraries -->
+    <!-- Screenshot Generation Library -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <!-- QR Code Generation Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.js"></script>
 </head>
 <body>
     <div class="container">
@@ -16,62 +19,115 @@
             <h1 class="game-title">你畫我猜 -- AI猜圖擂台賽 Quick Draw DUEL! </h1>
             <h1 class="score-header">成績與說明 Result</h1>
             <div class="player-info" id="playerInfo"></div>
-            <table class="results-table" id="resultsTable">
-                <thead>
-                    <tr>
-                        <th>題次</th>
-                        <th>指定詞</th>
-                        <th>AI 預測 TOP 1</th>
-                        <th>耗時</th>
-                        <th>逾時</th>
-                        <th>正確</th>
-                        <th>分數</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBody"></tbody>
-            </table>
-            
-            <!-- 總分區塊 -->
-            <div class="total-score-section" id="totalScoreSection">
-                <h2>總分 Total Score</h2>
-                <div class="total-score-display" id="totalScoreDisplay">
-                    <span class="score-value" id="totalScoreValue">計算中...</span>
-                    <span class="score-label">分</span>
+            <!-- Results and Score/Time Section -->
+            <div class="results-and-score-section">
+                <div class="results-section">
+                    <table class="results-table" id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>題次</th>
+                                <th>指定詞</th>
+                                <th>AI 預測 TOP 1</th>
+                                <th>耗時</th>
+                                <th>逾時</th>
+                                <th>正確</th>
+                                <th>分數</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody"></tbody>
+                    </table>
+                </div>
+                
+                <div class="score-time-section">
+                    <!-- 總分區塊 -->
+                    <div class="total-score-section" id="totalScoreSection">
+                        <h2>總分 Total Score</h2>
+                        <div class="total-score-display" id="totalScoreDisplay">
+                            <span class="score-value" id="totalScoreValue">計算中...</span>
+                            <span class="score-label">分</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 總時間區塊 -->
+                    <div class="total-time-section" id="totalTimeSection">
+                        <h2>總耗時 Total Time</h2>
+                        <div class="total-time-display" id="totalTimeDisplay">
+                            <span class="time-value" id="totalTimeValue">計算中...</span>
+                            <span class="time-label">秒</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <!-- 玩家繪圖區塊 -->
-            <div class="player-drawings" id="playerDrawings">
-                <h2>玩家繪圖 Player's Drawing</h2>
-                <div class="drawings-grid" id="drawingsGrid">
-                    <!-- 繪圖將通過 JavaScript 動態載入 -->
+            <!-- Radar Chart and Player Drawings Section (Side by Side) -->
+            <div class="radar-and-drawings-section">
+                <!-- 雷達圖區塊 -->
+                <div class="radar-visualization" id="radarVisualization">
+                    <h2>AI預測繪圖準確度雷達圖 Radar Chart</h2>
+                    <div class="radar-container" id="radarContainer">
+                        <img id="radarImage" src="" alt="雷達圖" style="display: none;">
+                        <div class="loading-message-dark" id="radarLoading">載入中...</div>
+                    </div>
+                </div>
+                
+                <!-- 玩家繪圖區塊 -->
+                <div class="player-drawings" id="playerDrawings">
+                    <h2>玩家繪圖 Player's Drawing</h2>
+                    <div class="drawings-grid" id="drawingsGrid">
+                        <!-- 繪圖將通過 JavaScript 動態載入 -->
+                    </div>
                 </div>
             </div>
-            
-            <!-- UMAP 視覺化區塊 -->
-            <div class="umap-visualization" id="umapVisualization">
-                <h2>機器學習特徵降維視覺化 UMAP Visualization</h2>
-                <div class="umap-container" id="umapContainer">
-                    <img id="umapImage" src="" alt="UMAP 視覺化" style="display: none;">
-                    <div class="loading-message-dark" id="umapLoading">載入中...</div>
+            <!-- UMAP Visualization with Text Section -->
+            <div class="umap-and-text-section">
+                <div class="umap-visualization" id="umapVisualization">
+                    <h2>機器學習特徵降維視覺化 UMAP Visualization</h2>
+                    <div class="umap-container" id="umapContainer">
+                        <img id="umapImage" src="" alt="UMAP 視覺化" style="display: none;">
+                        <div class="loading-message-dark" id="umapLoading">載入中...</div>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- 雷達圖區塊 -->
-            <div class="radar-visualization" id="radarVisualization">
-                <h2>AI預測繪圖準確度雷達圖 Radar Chart</h2>
-                <div class="radar-container" id="radarContainer">
-                    <img id="radarImage" src="" alt="雷達圖" style="display: none;">
-                    <div class="loading-message-dark" id="radarLoading">載入中...</div>
+                
+                <div class="umap-explanation">
+                    <h3>說明 Description</h3>
+                    <!-- <p>此圖顯示了您的繪圖在機器學習特徵空間中降維後的分布位置。相近的點代表 AI 認為相似的繪圖特徵。</p>
+                    <p>This visualization shows where your drawings are positioned in the machine learning feature space after dimensionality reduction. Similar drawings cluster together based on AI's understanding of their features.</p>
+                     -->
+                    <!-- Robot explaining the visualization -->
+                    <div class="robot-explanation">
+                        <div class="speech-bubble">
+                            <p>此圖顯示了您的繪圖在機器學習特徵空間中降維後的分布位置。相近的點代表 AI 認為相似的繪圖特徵 !</p>
+                            <!-- <p>This visualization shows where your drawings are positioned in the machine learning feature space after dimensionality reduction. Similar drawings cluster together based on AI's understanding of their features.</p> -->
+                        </div>
+                        <img src="robot.png" alt="AI Robot" class="robot-image">
+                    </div>
                 </div>
+                
             </div>
             
             <div class="action-buttons">
                 <a class="btn" id="downloadBtn" href="#" role="button">下載成績截圖</a>
-                <a class="btn" id="downloadPdfBtn" href="#" role="button">下載 PDF 報告</a>
+                <button class="btn" id="qrBtn">生成 QR 碼分享</button>
                 <button class="btn primary" id="restartBtn">重新開始遊戲</button>
             </div>
         </div>
     </div>
+    
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="qr-modal" style="display: none;">
+        <div class="qr-modal-content">
+            <div class="qr-modal-header">
+                <h3>掃描 QR 碼下載成績</h3>
+                <button class="qr-close" id="qrCloseBtn">&times;</button>
+            </div>
+            <div class="qr-modal-body">
+                <div id="qrCodeContainer"></div>
+                <p>使用手機掃描此 QR 碼即可下載成績截圖</p>
+                <div id="qrTimestamp" class="qr-timestamp" style="display: none;"></div>
+                <div id="qrStatus">生成中...</div>
+            </div>
+        </div>
+    </div>
+    
     <script type="module" src="score.js"></script>
 </body>
 </html>

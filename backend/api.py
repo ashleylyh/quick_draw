@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
@@ -40,7 +41,8 @@ async def create_session(player: PlayerInfo):
         "difficulty": player.difficulty,
         "rounds": json.dumps(game_data["rounds"]),
         "prompts": json.dumps(game_data["prompts"]),
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "session_id": session_id
     }
     r.hset(f"session:{session_id}", mapping=session_data)
     # r.expire(f"session:{session_id}", 86400) # 1 day
@@ -375,3 +377,240 @@ async def health_check():
         "embed_model_loaded": embed_model is not None,
         "classes_count": len(CLASSES)
     }
+
+@router.get("/api/qr-code/{session_id}")
+async def get_qr_code(session_id: str):
+    """
+    Check if QR code already exists for a session and return the QR code image
+    """
+    try:
+        r = get_redis()
+        qr_data = r.hgetall(f"qr_code:{session_id}")
+        
+        if not qr_data:
+            return {
+                "status": "not_found",
+                "message": "QR code not found for this session"
+            }
+        
+        # Convert bytes to strings
+        # qr_info = {key.decode(): value.decode() for key, value in qr_data.items()}
+        
+        return {
+            "status": "exists",
+            "qr_image_base64": qr_data["qr_image_base64"],
+            "shareable_url": qr_data["shareable_url"],
+            "created_at": qr_data["created_at"],
+            "session_id": session_id,
+            "player_name": qr_data["player_name"]
+        }
+        
+    except Exception as e:
+        print(f"Error checking QR code: {e}")
+        raise HTTPException(status_code=500, detail=f"Error checking QR code: {str(e)}")
+
+@router.delete("/api/qr-code/{session_id}")
+async def delete_qr_code(session_id: str):
+    """
+    Delete QR code from Redis database
+    """
+    try:
+        r = get_redis()
+        qr_data = r.hgetall(f"qr_code:{session_id}")
+        
+        if not qr_data:
+            raise HTTPException(status_code=404, detail="QR code not found")
+        
+        # Delete QR code metadata and image from Redis
+        r.delete(f"qr_code:{session_id}")
+        
+        return {
+            "status": "success",
+            "message": "QR code deleted successfully from database"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting QR code: {e}")
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
+
+@router.post("/api/generate-qr-code")
+async def generate_qr_code(
+    sessionId: str = Form(...),
+    playerName: str = Form(...),
+    shareableUrl: str = Form(...)
+):
+    """
+    Generate QR code image and store in Redis database
+    """
+    try:
+        import qrcode
+        from io import BytesIO
+        import base64
+        
+        r = get_redis()
+        
+        # Check if QR code already exists for this session
+        existing_qr = r.hgetall(f"qr_code:{sessionId}")
+        if existing_qr:
+            qr_info = {key.decode(): value.decode() for key, value in existing_qr.items()}
+            return {
+                "status": "success",
+                "qr_image_base64": qr_info["qr_image_base64"],
+                "shareable_url": qr_info["shareable_url"],
+                "message": "QR code already exists in database",
+                "from_cache": True,
+                "created_at": qr_info["created_at"]
+            }
+        
+        # Generate QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(shareableUrl)
+        qr.make(fit=True)
+        
+        # Create QR code image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        qr_image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        current_time = datetime.now().isoformat()
+        
+        # Store QR code in Redis
+        qr_code_data = {
+            "session_id": sessionId,
+            "player_name": playerName,
+            "shareable_url": shareableUrl,
+            "qr_image_base64": qr_image_base64,
+            "created_at": current_time
+        }
+        r.hset(f"qr_code:{sessionId}", mapping=qr_code_data)
+        r.expire(f"qr_code:{sessionId}", 7 * 24 * 3600)  # Expire after 7 days
+        
+        return {
+            "status": "success",
+            "qr_image_base64": qr_image_base64,
+            "shareable_url": shareableUrl,
+            "message": "QR code generated and stored in database",
+            "from_cache": False,
+            "created_at": current_time
+        }
+        
+    except Exception as e:
+        print(f"Error generating QR code: {e}")
+        raise HTTPException(status_code=500, detail=f"QR code generation failed: {str(e)}")
+
+@router.post("/api/upload-screenshot")
+async def upload_screenshot(
+    screenshot: UploadFile = File(...),
+    sessionId: str = Form(...),
+    playerName: str = Form(...)
+):
+    """
+    Upload a screenshot and return a shareable URL for QR code generation
+    Screenshot is still saved as file for download functionality
+    """
+    try:
+        # Validate file type
+        if not screenshot.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Create uploads directory if it doesn't exist
+        uploads_dir = "uploads/screenshots"
+        os.makedirs(uploads_dir, exist_ok=True)
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = screenshot.filename.split('.')[-1] if '.' in screenshot.filename else 'png'
+        safe_player_name = "".join(c for c in playerName if c.isalnum() or c in ('-', '_'))
+        filename = f"quickdraw_{safe_player_name}_{sessionId}_{timestamp}.{file_extension}"
+        
+        # Save file
+        file_path = os.path.join(uploads_dir, filename)
+        content = await screenshot.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # Generate shareable URL
+        shareable_url = f"http://localhost:8000/api/download-screenshot/{filename}"
+        
+        current_time = datetime.now().isoformat()
+        
+        # Store screenshot metadata in Redis
+        r = get_redis()
+        screenshot_data = {
+            "filename": filename,
+            "session_id": sessionId,
+            "player_name": playerName,
+            "upload_time": current_time,
+            "file_size": len(content),
+            "shareable_url": shareable_url
+        }
+        r.hset(f"screenshot:{filename}", mapping=screenshot_data)
+        r.expire(f"screenshot:{filename}", 7 * 24 * 3600)  # Expire after 7 days
+        
+        return {
+            "status": "success",
+            "filename": filename,
+            "shareableUrl": shareable_url,
+            "message": "Screenshot uploaded successfully",
+            "created_at": current_time
+        }
+        
+    except Exception as e:
+        print(f"Error uploading screenshot: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@router.get("/api/download-screenshot/{filename}")
+async def download_screenshot(filename: str):
+    """
+    Download a screenshot by filename
+    """
+    try:
+        file_path = os.path.join("uploads/screenshots", filename)
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Screenshot not found")
+        
+        # Return file for download
+        return FileResponse(
+            path=file_path,
+            filename=filename,
+            media_type='image/png'
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error downloading screenshot: {e}")
+        raise HTTPException(status_code=500, detail=f"Download failed: {str(e)}")
+
+@router.get("/api/screenshot-info/{filename}")
+async def get_screenshot_info(filename: str):
+    """
+    Get metadata about a screenshot
+    """
+    try:
+        r = get_redis()
+        screenshot_data = r.hgetall(f"screenshot:{filename}")
+        
+        if not screenshot_data:
+            raise HTTPException(status_code=404, detail="Screenshot metadata not found")
+        
+        # Convert bytes to strings for JSON serialization
+        return {key.decode(): value.decode() for key, value in screenshot_data.items()}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting screenshot info: {e}")
+        raise HTTPException(status_code=500, detail=f"Info retrieval failed: {str(e)}")
