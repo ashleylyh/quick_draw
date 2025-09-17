@@ -127,6 +127,65 @@ body:not(.show-header-image) .header-image {
   display: none !important;
 }
 
+/* Acknowledgment Section (only in form view) */
+.acknowledgment-section {
+  /* background: linear-gradient(135deg, var(--blue-bg3), var(--blue-bg2)); */
+  background: var(--input-bg);
+  color: var(--muted);
+  padding: 16px;
+  margin-bottom: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.acknowledgment-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.acknowledgment-content {
+  line-height: 1.6;
+}
+
+.acknowledgment-content p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.acknowledgment-content strong {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.acknowledgment-content a {
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.acknowledgment-content a:hover {
+  color: var(--yellow-bg1);
+  text-decoration: underline;
+}
+
+.acknowledgment-divider {
+  border: none;
+  height: 1px;
+  background: var(--muted);
+  margin: 12px 0;
+}
+
+.acknowledgment-note {
+  font-size: 13px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 8px 0 0 0;
+  font-style: italic;
+}
+
 h1 { 
   font-size: clamp(20px, 4vw, 26px); 
   margin: 0 0 6px; 
@@ -164,11 +223,11 @@ h2 {
   font-size: clamp(20px, 5vw, 28px);
   font-weight: 800;
   margin: 20px 0;
-  color: var(--brand);
+  color: var(--blue-bg2);
   padding: clamp(15px, 4vw, 20px);
   background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
   border-radius: var(--radius);
-  border: 2px solid var(--brand);
+  border: 2px solid var(--blue-bg2);
 }
 
 /* Drawing page specific styles */
@@ -285,7 +344,7 @@ input[type="text"]:focus, input[type="number"]:focus {
   appearance: none; 
   border: 1px solid var(--border); 
   color: var(--text); 
-  background: var(--panel); 
+  background: var(--border); 
   padding: clamp(8px, 2vw, 14px) clamp(12px, 3vw, 18px); 
   border-radius: 12px; 
   font-weight: 600; 
@@ -333,12 +392,12 @@ input[type="text"]:focus, input[type="number"]:focus {
   top: clamp(8px, 2vw, 10px); 
   right: clamp(8px, 2vw, 12px); 
   z-index: 1000; 
-  background: var(--brand); 
+  background: #2563eb; 
   color: white; 
   padding: clamp(4px, 1vw, 6px) clamp(8px, 2vw, 10px); 
   border-radius: 999px; 
   font-size: clamp(12px, 2vw, 14px); 
-  border: 1px solid var(--brand); 
+  border: 1px solid #2563eb; 
   box-shadow: var(--shadow); 
 }
 .prompt { 
@@ -376,7 +435,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 }
 .tips { 
   background: #f0f9ff; 
-  color: var(--brand);
+  color: var(--blue-bg3);
   padding: clamp(6px, 2vw, 8px) clamp(8px, 2vw, 10px); 
   border-radius: 10px; 
   border: 1px solid #bfdbfe; 
@@ -405,6 +464,22 @@ input[type="text"]:focus, input[type="number"]:focus {
   
   .header-image img {
     max-width: clamp(100px, 25vw, 150px);
+  }
+  
+  /* Acknowledgment mobile styles */
+  .acknowledgment-section {
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+  
+  .acknowledgment-section h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .acknowledgment-content p {
+    font-size: 12px;
+    margin: 4px 0;
   }
 }
 

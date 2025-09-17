@@ -75,8 +75,9 @@ function updateBadgeVisibility(viewId) {
 
 function updateBadge() {
   const difficultyText = difficulty === 'hard' ? '困難' : '簡單';
-  const badgeText = `${playerName} (${playerGender}, ${playerAge}) — ${difficultyText}`;
-  ;['view-instruct','view-draw','view-done'].forEach(id => {
+  const genderText = playerGender === 'male' ? '男' : playerGender === 'female' ? '女' : '其他';
+  const badgeText = `${playerName} (${genderText}, ${playerAge}) — ${difficultyText}`;
+  ['view-instruct','view-draw','view-done'].forEach(id => {
     const view = $(id); if (!view) return;
     const old = view.querySelector('.badge'); if (old) old.remove();
     const badge = document.createElement('div');
