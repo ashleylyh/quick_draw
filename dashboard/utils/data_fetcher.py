@@ -1,0 +1,191 @@
+import requests
+import json
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+import redis
+
+class DataFetcher:
+    """Handles data fetching from Redis and backend API for the dashboard"""
+    
+    def __init__(self, backend_url: str = "http://localhost:8000"):
+        self.backend_url = backend_url.rstrip('/')
+        self.redis_client = None
+        self._init_redis()
+    
+    def _init_redis(self):
+        """Initialize Redis connection"""
+        try:
+            import redis
+            self.redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+            # Test connection
+            self.redis_client.ping()
+        except Exception as e:
+            print(f"Redis connection failed: {e}")
+            self.redis_client = None
+    
+    def check_connection(self) -> bool:
+        """Check if backend API is accessible"""
+        try:
+            response = requests.get(f"{self.backend_url}/api/health", timeout=5)
+            return response.status_code == 200
+        except:
+            return False
+    
+    def get_all_sessions(self) -> List[Dict[str, Any]]:
+        """Fetch all game sessions from Redis"""
+        if not self.redis_client:
+            return []
+        
+        sessions = []
+        try:
+            # Get all session keys
+            session_keys = self.redis_client.keys("session:*")
+            
+            for key in session_keys:
+                if ":drawings" not in key and ":qr_code" not in key:
+                    session_data = self.redis_client.hgetall(key)
+                    if session_data:
+                        # Parse JSON fields
+                        if 'rounds' in session_data:
+                            session_data['rounds'] = json.loads(session_data['rounds'])
+                        if 'prompts' in session_data:
+                            session_data['prompts'] = json.loads(session_data['prompts'])
+                        
+                        # Get session drawings and calculate score
+                        session_id = session_data.get('session_id')
+                        if session_id:
+                            drawings = self.get_session_drawings(session_id)
+                            session_data['drawings'] = drawings
+                            session_data['total_score'] = self.calculate_session_score(drawings)
+                        
+                        sessions.append(session_data)
+        
+        except Exception as e:
+            print(f"Error fetching sessions: {e}")
+        
+        return sessions
+    
+    def get_session_drawings(self, session_id: str) -> List[Dict[str, Any]]:
+        """Get all drawings for a session"""
+        if not self.redis_client:
+            return []
+        
+        drawings = []
+        try:
+            # Get drawing IDs for this session
+            drawing_ids = self.redis_client.lrange(f"session:{session_id}:drawings", 0, -1)
+            
+            for drawing_id in drawing_ids:
+                drawing_data = self.redis_client.hgetall(drawing_id)
+                if drawing_data:
+                    # Parse JSON fields
+                    if 'predictions' in drawing_data:
+                        drawing_data['predictions'] = json.loads(drawing_data['predictions'])
+                    if 'embedding' in drawing_data:
+                        drawing_data['embedding'] = json.loads(drawing_data['embedding'])
+                    
+                    # Convert numeric fields
+                    if 'round' in drawing_data:
+                        drawing_data['round'] = int(drawing_data.get('round', 0))
+                    if 'time_spent_sec' in drawing_data:
+                        drawing_data['time_spent_sec'] = float(drawing_data.get('time_spent_sec', 0))
+                    if 'timed_out' in drawing_data:
+                        drawing_data['timed_out'] = int(drawing_data.get('timed_out', 0))
+                    
+                    drawings.append(drawing_data)
+            
+            # Sort by round number
+            drawings.sort(key=lambda x: x.get('round', 0))
+        
+        except Exception as e:
+            print(f"Error fetching drawings for session {session_id}: {e}")
+        
+        return drawings
+    
+    def calculate_session_score(self, drawings: List[Dict[str, Any]]) -> float:
+        """Calculate total score for a session"""
+        total_score = 0.0
+        
+        for drawing in drawings:
+            predictions = drawing.get('predictions', {})
+            target_class = drawing.get('target_class', '')
+            
+            if target_class in predictions:
+                confidence = predictions[target_class]
+                # Score based on confidence and time
+                time_bonus = max(0, 1 - (drawing.get('time_spent_sec', 30) / 30))  # Assume 30s max
+                score = confidence * (1 + time_bonus * 0.5)  # 50% time bonus
+                total_score += score
+        
+        return round(total_score, 2)
+    
+    def filter_sessions(self, sessions: List[Dict[str, Any]], time_range: str, 
+                       difficulty_filter: List[str]) -> List[Dict[str, Any]]:
+        """Filter sessions based on time range and difficulty"""
+        filtered = []
+        
+        # Calculate time threshold
+        now = datetime.now()
+        if time_range == "Last 24 hours":
+            threshold = now - timedelta(hours=24)
+        elif time_range == "Last 7 days":
+            threshold = now - timedelta(days=7)
+        elif time_range == "Last 30 days":
+            threshold = now - timedelta(days=30)
+        else:  # All time
+            threshold = None
+        
+        for session in sessions:
+            # Filter by difficulty
+            if session.get('difficulty') not in difficulty_filter:
+                continue
+            
+            # Filter by time
+            if threshold:
+                timestamp_str = session.get('timestamp', '')
+                if timestamp_str:
+                    try:
+                        timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                        if timestamp.replace(tzinfo=None) < threshold:
+                            continue
+                    except:
+                        continue
+            
+            filtered.append(session)
+        
+        return filtered
+    
+    def get_ranking_data(self, sessions: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """Get ranking data organized by difficulty"""
+        rankings = {'easy': [], 'medium': [], 'hard': []}
+        
+        for session in sessions:
+            difficulty = session.get('difficulty', 'easy')
+            if difficulty in rankings:
+                player_data = {
+                    'player_name': session.get('player_name', 'Unknown'),
+                    'total_score': session.get('total_score', 0),
+                    'games_played': len(session.get('drawings', [])),
+                    'timestamp': session.get('timestamp', ''),
+                    'age': session.get('age', 0),
+                    'gender': session.get('gender', 'Unknown')
+                }
+                rankings[difficulty].append(player_data)
+        
+        # Sort each difficulty by score (descending)
+        for difficulty in rankings:
+            rankings[difficulty].sort(key=lambda x: x['total_score'], reverse=True)
+        
+        return rankings
+    
+    def get_score_distribution(self, sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Get score distribution data for histogram"""
+        scores_by_difficulty = {'easy': [], 'medium': [], 'hard': []}
+        
+        for session in sessions:
+            difficulty = session.get('difficulty', 'easy')
+            score = session.get('total_score', 0)
+            if difficulty in scores_by_difficulty:
+                scores_by_difficulty[difficulty].append(score)
+        
+        return scores_by_difficulty

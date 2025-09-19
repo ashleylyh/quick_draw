@@ -15,13 +15,24 @@ cd quick_draw
 ```
 
 ## Install Python dependencies
-The project uses `pyproject.toml`. Using UV to install dependencies into your environment:
+The project uses `pyproject.toml` with optional dashboard dependencies. Using UV to install dependencies:
 
+**Basic installation:**
 ```bash
 uv sync
-source .venv/bin/activate
+source .venv/bin/activate  # Activate virtual environment
 
 deactivate # exit a virtual env
+```
+
+**With dashboard (analytics) features:**
+```bash
+uv sync --extra dashboard
+```
+
+Or use the setup script:
+```bash
+./setup-dashboard.sh
 ```
 
 ## Install Redis
@@ -32,7 +43,7 @@ https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis
 ---
 
 ## Quick start (development)
-Open three terminals (remember to activate vitrual env)
+Open terminals (remember to activate virtual environment with `source .venv/bin/activate`)
 
 1) Start Redis (default port 6379)
 
@@ -40,11 +51,11 @@ Open three terminals (remember to activate vitrual env)
 redis-server
 ```
 
-2) Start backend API (it serves on localhost port 8000), for API docs, access through http://localhost:8000/docs#/
+2) Start backend API (serves on localhost port 8000), for API docs: http://localhost:8000/docs#/
 ```bash
 # from project root
-cd backend
-python app.py
+uv run uvicorn backend.app:app --host 0.0.0.0 --port 8000
+# or manually: cd backend && python app.py
 ```
 
 3) Serve frontend (static files) — simple Python HTTP server
@@ -55,7 +66,40 @@ python -m http.server 3000
 # then open http://localhost:3000 in a browser
 ```
 
+4) **NEW**: Analytics Dashboard (optional)
+
+```bash
+cd dashboard
+./run.sh
+# then open http://localhost:8501 in a browser
+```
+
 > Tip: If you get CORS issues in production, restrict `allow_origins` in `backend/app.py` instead of `"*"`.
+```bash
+sudo kill -9 $(sudo lsof -t -i:8080)
+```
+
+---
+
+## Features
+
+### 🎨 Core Game
+- **Drawing Interface**: HTML5 Canvas-based drawing with real-time AI predictions
+- **Multiple Difficulties**: Easy, Medium, Hard modes with different class sets
+- **ML Predictions**: TensorFlow-based doodle classification
+- **Visual Analytics**: UMAP embeddings and radar charts for drawing analysis
+
+### 📊 Analytics Dashboard (NEW)
+- **Player Rankings**: Leaderboards by difficulty level with podium displays
+- **Score Analysis**: Distribution histograms and statistical analysis
+- **Real-time Metrics**: Live dashboard with player statistics and recent activity
+- **Interactive Visualizations**: Plotly-powered charts with filtering and time ranges
+
+### 🔧 Technical Features
+- **FastAPI Backend**: RESTful API with automatic documentation
+- **Redis Storage**: Session management and caching
+- **Streamlit Dashboard**: Interactive analytics interface
+- **QR Code Sharing**: Share game results easily
 
 ---
 
@@ -72,6 +116,11 @@ python -m http.server 3000
     - `score.html` — results page (UMAP, radar, drawings)
     - `sketch.js`, `score.js` — frontend logic
     - `score_style.css`, `sketch_style.css` — styles
+- `dashboard/` — **NEW**: Streamlit analytics dashboard
+    - `app.py` — main dashboard application
+    - `components/` — ranking and histogram components
+    - `utils/` — data fetching and processing utilities
+    - `run.sh` / `run.bat` — startup scripts
 - `model/` — pretrained model artifacts (may contain `doodleNet-model.keras`)
 - `feature/`— background embeddings and cached datasets
 ---
