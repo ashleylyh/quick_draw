@@ -28,8 +28,123 @@ let drawStartAt = 0;
 let locked = false;
 const logs = [];
 
+// ===== Real-time variables =====
+let realTimeConnected = false;
+// let apiClient;
+let realTimeManager;
+
 // ===== DOM helpers =====
 const $ = id => document.getElementById(id);
+
+// Initialize real-time features when available
+function initializeRealTime() {
+  if (window.realTimeManager) {
+    realTimeManager = window.realTimeManager;
+    // apiClient = window.apiClient;
+    
+    // Setup event handlers
+    realTimeManager.onGameEvent = handleGameEvent;
+    realTimeManager.onConnectionChange = handleConnectionChange;
+    
+    // Connect to SSE for general events
+    realTimeManager.connectSSE();
+    
+    console.log('Real-time features initialized');
+  } else {
+    console.warn('Real-time features not available, falling back to polling');
+  }
+}
+
+// Handle real-time game events
+function handleGameEvent(event) {
+  console.log('Received game event:', event);
+  
+  switch (event.event_type) {
+    case 'game_session_completed':
+      if (event.session_id === sessionId) {
+        showNotification('遊戲完成！結果已更新', 'success');
+      }
+      break;
+      
+    case 'game_round_completed':
+      if (event.session_id === sessionId) {
+        showNotification(`第 ${event.data.round} 題已提交`, 'info');
+      }
+      break;
+  }
+}
+
+// Handle connection status changes
+function handleConnectionChange(connected) {
+  realTimeConnected = connected;
+  updateConnectionStatus();
+}
+
+// Update connection status indicator
+function updateConnectionStatus() {
+  // This will be handled by the connection indicator in realtime.js
+  console.log(`Real-time connection: ${realTimeConnected ? 'Connected' : 'Disconnected'}`);
+}
+
+// Show notification to user
+function showNotification(message, type = 'info') {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.style.cssText = `
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    z-index: 1001;
+    max-width: 300px;
+    word-wrap: break-word;
+    animation: slideIn 0.3s ease;
+  `;
+  
+  // Set background color based on type
+  const colors = {
+    success: '#4CAF50',
+    error: '#f44336',
+    warning: '#ff9800',
+    info: '#2196F3'
+  };
+  notification.style.backgroundColor = colors[type] || colors.info;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  // Auto remove after 4 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, 4000);
+}
+
+// Add CSS animation for notifications
+if (!document.getElementById('notification-styles')) {
+  const style = document.createElement('style');
+  style.id = 'notification-styles';
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// Make showNotification globally available
+window.showNotification = showNotification;
 
 // Isolate form inputs from p5's global event handlers
 function isolateInputs() {
@@ -106,17 +221,56 @@ async function onStartForm() {
   playerName = nameVal; playerGender = genderEl.value; playerAge = ageVal; difficulty = diffEl.value;
 
   try {
+    // Show loading indicator
+    const startBtn = $('startBtn');
+    if (startBtn) {
+      startBtn.disabled = true;
+      startBtn.textContent = '啟動中...';
+    }
+    
+    // Use simple fetch to the original API
+    let data;
     const resp = await fetch(`${API_BASE}/sessions`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_name: playerName, gender: playerGender, age: parseInt(playerAge), difficulty })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        player_name: playerName, 
+        gender: playerGender, 
+        age: parseInt(playerAge), 
+        difficulty 
+      })
     });
     if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
-    const data = await resp.json();
-    sessionId = data.session_id; activeRounds = data.rounds || []; activePrompts = data.prompts || [];
-    roundIdx = 0; logs.length = 0;
-    updateBadge(); applyRound(roundIdx); showView('view-instruct');
+    data = await resp.json();
+    
+    sessionId = data.session_id;
+    activeRounds = data.rounds || [];
+    activePrompts = data.prompts || [];
+    roundIdx = 0;
+    logs.length = 0;
+    
+    // Connect to real-time features for this session
+    if (realTimeManager && sessionId) {
+      realTimeManager.connectWebSocket(sessionId);
+      showNotification('遊戲開始！已連接即時更新', 'success');
+    }
+    
+    updateBadge();
+    applyRound(roundIdx);
+    showView('view-instruct');
+    
   } catch (err) {
-    console.error(err); box && (box.textContent = '遊戲啟動失敗，請檢查網路或重試');
+    console.error('Session creation error:', err);
+    const errorMsg = err.message || '遊戲啟動失敗，請檢查網路或重試';
+    box && (box.textContent = errorMsg);
+    showNotification(errorMsg, 'error');
+  } finally {
+    // Reset button state
+    const startBtn = $('startBtn');
+    if (startBtn) {
+      startBtn.disabled = false;
+      startBtn.textContent = '填寫完成，開始挑戰！';
+    }
   }
 }
 
@@ -165,26 +319,73 @@ function getInputImageAsBase64() {
 }
 
 async function previewPredict() {
-  if (locked) return; const resEl = $('res'); if (!resEl) return;
+  if (locked) return; 
+  const resEl = $('res'); 
+  if (!resEl) return;
+  
   try {
     const imageData = getInputImageAsBase64();
-    if (!imageData) { resEl.innerHTML = '即時預覽：請開始繪畫...'; return; }
+    if (!imageData) { 
+      resEl.innerHTML = '即時預覽：請開始繪畫...'; 
+      return; 
+    }
+    
     const roundChoices = activeRounds[roundIdx] || [];
+    
+    // Use enhanced API client if available
+  let result;
+
+    // Fallback to direct fetch
     const resp = await fetch(`${API_BASE}/predict-realtime`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_data: imageData, choices: roundChoices })
     });
-    if (!resp.ok) { resEl.innerHTML = '即時預覽：分析中...'; return; }
-    const result = await resp.json();
+    if (!resp.ok) { 
+      resEl.innerHTML = '即時預覽：分析中...'; 
+      return; 
+    }
+    result = await resp.json();
+  
+    
     if (result.success && result.predictions) {
-      const sorted = Object.entries(result.predictions).map(([name,p])=>({name,p})).sort((a,b)=>b.p-a.p);
+      const sorted = Object.entries(result.predictions)
+        .map(([name,p])=>({name,p}))
+        .sort((a,b)=>b.p-a.p);
       const top3 = sorted.slice(0,3);
-      resEl.innerHTML = top3.length ? ('即時：' + top3.map(t=>`${toZh(t.name)} ${(t.p*100).toFixed(1)}%`).join('，')) : '即時預覽：繪圖中...';
+      
+      if (top3.length) {
+        const predictionText = top3
+          .map(t=>`${toZh(t.name)} ${(t.p*100).toFixed(1)}%`)
+          .join('，');
+        resEl.innerHTML = `即時：${predictionText}`;
+        
+        // Add visual feedback for high confidence predictions
+        const topConfidence = top3[0]?.p || 0;
+        if (topConfidence > 0.8) {
+          resEl.style.color = 'var(--success, #4CAF50)';
+          resEl.style.fontWeight = 'bold';
+        } else if (topConfidence > 0.5) {
+          resEl.style.color = 'var(--warning, #ff9800)';
+          resEl.style.fontWeight = 'normal';
+        } else {
+          resEl.style.color = 'var(--text)';
+          resEl.style.fontWeight = 'normal';
+        }
+      } else {
+        resEl.innerHTML = '即時預覽：繪圖中...';
+      }
     } else {
       resEl.innerHTML = '即時預覽：分析中...';
     }
   } catch (e) {
-    console.error(e); resEl.innerHTML = '即時預覽：繪圖中...';
+    console.error('Preview prediction error:', e); 
+    resEl.innerHTML = '即時預覽：繪圖中...';
+    
+    // Show error notification for critical failures
+    if (e.message.includes('Rate limit') || e.message.includes('429')) {
+      showNotification('預測請求過於頻繁，請稍候', 'warning');
+    }
   }
 }
 
@@ -201,33 +402,33 @@ async function submitAnswer() {
   const timedOut = timeLeftMs <= 0 ? 1 : 0;
 
   try {
-    // Use the SAME image processing as previewPredict
+    // Get base64 image data (same processing as previewPredict)
     const imageData = getInputImageAsBase64();
     if (!imageData) throw new Error('Failed to get image data');
-    // Convert base64 data URL to blob (same format as before for backend compatibility)
-    const response = await fetch(imageData);
-    const blob = await response.blob();
 
     // Get original canvas image as base64 for visualization
     const originalImageData = getOriginalCanvasAsBase64();
     if (!originalImageData) throw new Error('Failed to get original image data');
-    // Convert base64 data URL to blob (same format as before for backend compatibility)
-    const originalResponse = await fetch(originalImageData);
-    const originalBlob = await originalResponse.blob();
 
-
-    const formData = new FormData();
-    formData.append('session_id', sessionId);
-    // NOTE: backend currently expects 1-based round index
-    formData.append('round', String(roundIdx + 1));
-    formData.append('prompt', currentPrompt);
-    formData.append('time_spent_sec', spentSec.toFixed(2));
-    formData.append('timed_out', String(timedOut));
-    formData.append('drawing', blob, `${sessionId}_round${roundIdx+1}_${currentPrompt}.png`);
-    formData.append('original_image_data', originalBlob, `${sessionId}_round${roundIdx+1}_${currentPrompt}_original.png`);
+    // Create JSON payload for the BaseModel API
+    const requestData = {
+      session_id: sessionId,
+      round: roundIdx + 1, // NOTE: backend expects 1-based round index
+      prompt: currentPrompt,
+      time_spent_sec: parseFloat(spentSec.toFixed(2)),
+      timed_out: timedOut,
+      drawing: imageData, // base64 data URL
+      original_image_data: originalImageData // base64 data URL
+    };
 
     const resEl = $('res'); if (resEl) resEl.innerHTML = '正在分析您的繪圖...';
-    const resp = await fetch(`${API_BASE}/predict`, { method: 'POST', body: formData });
+    const resp = await fetch(`${API_BASE}/predict`, { 
+      method: 'POST', 
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
     if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
     const result = await resp.json();
 
@@ -315,3 +516,14 @@ window.mouseDragged = function mouseDragged() {
 window.touchMoved = function touchMoved() {
   if (touchX >= 0 && touchX < width && touchY >= 0 && touchY < height && !locked) { stroke(0); strokeWeight(BRUSH_WEIGHT); line(ptouchX, ptouchY, touchX, touchY); return false; }
 }
+
+// ===== Initialize real-time features when DOM is ready =====
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait a bit for realtime.js to load
+  setTimeout(initializeRealTime, 100);
+});
+
+// Also initialize when the window loads (fallback)
+window.addEventListener('load', () => {
+  setTimeout(initializeRealTime, 100);
+});

@@ -1,9 +1,5 @@
-import {toZh, formatTimestamp, buildCSVFromData } from './utils.js';
+import {toZh, formatTimestamp } from './utils.js';
 
-// Import html2canvas from CDN (will be loaded in HTML)
-// QR codes are generated on the backend and stored in Redis database
-
-// Individual API-calling functions
 async function fetchSessionResults(sessionId) {
     try {
         const response = await fetch(`http://localhost:8000/api/session/${sessionId}`);
@@ -99,13 +95,13 @@ function populateSessionInfo(sessionData) {
         }
     }
     playerInfo.innerHTML = `
-        <span class="player-label">參賽者：</span>
+        <span class="player-label">參賽者Name：</span>
         <span class="player-value">${sessionData.player_name || '未知'}</span>
-        &emsp;&emsp;&emsp;
-        <span class="player-label">難度：</span>
+        &emsp;&emsp;
+        <span class="player-label">難度Difficulty：</span>
         <span class="player-value">${sessionData.difficulty === 'hard' ? '困難' : '簡單'}</span>
-        &emsp;&emsp;&emsp;
-        <span class="player-label">時間：</span>
+        &emsp;&emsp;
+        <span class="player-label">時間Time：</span>
         <span class="player-value">${formattedTime}</span>
     `;
     // playerInfo.innerHTML = `參賽者：${sessionData.player_name || '未知'}&emsp;&emsp;難度：${sessionData.difficulty === 'hard' ? '困難' : '簡單'}&emsp;&emsp;時間：${formattedTime}`;
@@ -143,7 +139,7 @@ function populateResultsTable(sessionData, drawingsData) {
             });
         }
         const sorted = Object.entries(filteredPredictions).map(([name,p])=>({name,p})).sort((a,b)=>b.p-a.p);
-        const top1 = sorted[0] ? `${toZh(sorted[0].name)} (${(sorted[0].p*100).toFixed(1)}%)` : '-';
+        const top1 = sorted[0] ? `${toZh(sorted[0].name)}(${(sorted[0].p*100).toFixed(1)}%)` : '-';
         
         // Check correctness - if top1 prediction matches the prompt
         const isCorrect = sorted[0] && sorted[0].name === d.prompt;
@@ -151,14 +147,10 @@ function populateResultsTable(sessionData, drawingsData) {
             '<span class="correct-indicator correct">✓</span>' : 
             '<span class="correct-indicator incorrect">✗</span>';
         
-        // Calculate score - use the probability for the correct prompt
-        const score = predictions[d.prompt] ? (predictions[d.prompt] * 100) : 0;
-        totalScore += score;
-        
-        // Add time to total
+        totalScore += d.corr_prob ? parseFloat(d.corr_prob)*100 : 0;
         totalTime += parseFloat(d.time_spent_sec) || 0;
         
-        const scoreDisplay = `<span class="score-cell">${score.toFixed(1)}</span>`;
+        const scoreDisplay = `<span class="score-cell">${(d.corr_prob*100).toFixed(1)}</span>`;
         
         return `<tr>
             <td>${d.round}</td>
@@ -488,15 +480,16 @@ async function generateQRCode(sessionData, drawingsData) {
         } else {
             // Generate screenshot first
             qrStatus.textContent = '生成截圖中...';
-            const screenshotBlob = await generateScreenshotBlob(sessionData);
+            const screenshotBase64 = await generateScreenshotbase64(sessionData);
             
             // Upload screenshot to backend
             qrStatus.textContent = '上傳截圖中...';
-            shareableUrl = await uploadScreenshot(screenshotBlob, sessionData);
+            shareableUrl = await uploadScreenshot(screenshotBase64, sessionData);
+            console.log('Shareable URL:', shareableUrl);
             
             // Generate QR code on backend and store in Redis
             qrStatus.textContent = '生成 QR 碼並存入資料庫...';
-            const qrResult = await generateQRCodeOnBackend(sessionData.session_id, sessionData.player_name, shareableUrl);
+            const qrResult = await generateQRCodeOnBackend(sessionData, shareableUrl);
             qrImageBase64 = qrResult.qrImageBase64;
             // cacheStatus = '（新生成並存入資料庫）';
             createdAt = qrResult.createdAt;
@@ -545,7 +538,7 @@ async function generateQRCode(sessionData, drawingsData) {
     }
 }
 
-async function generateScreenshotBlob(sessionData) {
+async function generateScreenshotbase64(sessionData) {
     // Check if html2canvas is available
     if (typeof html2canvas === 'undefined') {
         throw new Error('html2canvas 庫未載入');
@@ -565,16 +558,10 @@ async function generateScreenshotBlob(sessionData) {
         logging: false
     });
     
-    // Convert canvas to blob
-    return new Promise((resolve, reject) => {
-        canvas.toBlob((blob) => {
-            if (blob) {
-                resolve(blob);
-            } else {
-                reject(new Error('無法生成截圖'));
-            }
-        }, 'image/png');
-    });
+    // Convert canvas to base64
+    const base64 = canvas.toDataURL('image/png').split(',')[1];
+    return base64;
+
 }
 
 // QR Code checking and generation functions
@@ -606,24 +593,22 @@ async function checkExistingQRCode(sessionId) {
     }
 }
 
-async function generateQRCodeOnBackend(sessionId, playerName, shareableUrl) {
+async function generateQRCodeOnBackend(sessionData, shareableUrl) {
     try {
-        const formData = new FormData();
-        formData.append('sessionId', sessionId);
-        formData.append('playerName', playerName);
-        formData.append('shareableUrl', shareableUrl);
-        
+        const requestData = {
+            session_id: sessionData.session_id,
+            player_name: sessionData.player_name,
+            shareable_url: shareableUrl
+        };
+
         const response = await fetch('http://localhost:8000/api/generate-qr-code', {
             method: 'POST',
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestData)
         });
         
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`QR 碼生成失敗: ${response.status} ${errorText}`);
-        }
-        
         const result = await response.json();
+        console.log('QR code generation response data:', result);
         if (result.status === 'success') {
             return {
                 qrImageBase64: result.qr_image_base64,
@@ -640,15 +625,17 @@ async function generateQRCodeOnBackend(sessionId, playerName, shareableUrl) {
     }
 }
 
-async function uploadScreenshot(blob, sessionData) {
-    const formData = new FormData();
-    formData.append('screenshot', blob, `quickdraw_${sessionData.player_name}_${sessionData.session_id}.png`);
-    formData.append('sessionId', sessionData.session_id || 'unknown');
-    formData.append('playerName', sessionData.player_name || 'unknown');
-    
+async function uploadScreenshot(base64String, sessionData) {
+    const requestData = {
+        screenshot: base64String,
+        session_id: sessionData.session_id,
+        player_name: sessionData.player_name
+    };
+
     const response = await fetch('http://localhost:8000/api/upload-screenshot', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
     });
     
     if (!response.ok) {
@@ -688,7 +675,7 @@ async function populateAllWithCombinedPlots(sessionId) {
             fetchBothPlots(sessionId)
         ]);
 
-        console.log('Plots Results:', plotsResults);
+        console.log('Plots Results:', sessionResults);
         
         // Handle session results
         if (sessionResults.status === 'fulfilled') {
@@ -782,6 +769,7 @@ async function populateAll(sessionId) {
         ]);
 
         console.log('Umap Results:', umapResults);
+        console.log('Plots Results:', sessionResults);
         console.log('Radar Results:', radarResults);
         // Handle session results
         if (sessionResults.status === 'fulfilled') {

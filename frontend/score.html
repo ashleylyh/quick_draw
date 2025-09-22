@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuickDraw 成績</title>
     <link rel="stylesheet" href="score_style.css">
-    <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="./assets/favicon.png">
     <!-- Screenshot Generation Library -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <!-- QR Code Generation Library -->
@@ -25,13 +25,13 @@
                     <table class="results-table" id="resultsTable">
                         <thead>
                             <tr>
-                                <th>題次</th>
-                                <th>指定詞</th>
+                                <th>題次Question</th>
+                                <th>指定詞Prompt</th>
                                 <th>AI 預測 TOP 1</th>
-                                <th>耗時</th>
-                                <th>逾時</th>
-                                <th>正確</th>
-                                <th>分數</th>
+                                <th>耗時Time</th>
+                                <th>逾時TimeOut</th>
+                                <th>正確 Correct</th>
+                                <th>分數Score</th>
                             </tr>
                         </thead>
                         <tbody id="resultsBody"></tbody>
@@ -89,16 +89,12 @@
                 
                 <div class="umap-explanation">
                     <h3>說明 Description</h3>
-                    <!-- <p>此圖顯示了您的繪圖在機器學習特徵空間中降維後的分布位置。相近的點代表 AI 認為相似的繪圖特徵。</p>
-                    <p>This visualization shows where your drawings are positioned in the machine learning feature space after dimensionality reduction. Similar drawings cluster together based on AI's understanding of their features.</p>
-                     -->
-                    <!-- Robot explaining the visualization -->
                     <div class="robot-explanation">
                         <div class="speech-bubble">
                             <p>此圖顯示了您的繪圖在機器學習特徵空間中降維後的分布位置。相近的點代表 AI 認為相似的繪圖特徵 !</p>
-                            <!-- <p>This visualization shows where your drawings are positioned in the machine learning feature space after dimensionality reduction. Similar drawings cluster together based on AI's understanding of their features.</p> -->
+                            <p>This visualization shows where your drawings are positioned in the machine learning feature space after dimensionality reduction. Similar drawings cluster together based on AI's understanding of their features.</p>
                         </div>
-                        <img src="robot.png" alt="AI Robot" class="robot-image">
+                        <img src="./assets/robot.png" alt="AI Robot" class="robot-image">
                     </div>
                 </div>
                 

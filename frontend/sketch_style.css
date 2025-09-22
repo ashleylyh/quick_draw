@@ -83,12 +83,12 @@ header.card {
 }
 
 .header-text h1 {
-  font-size: 48px;
+  font-size: 45px;
   color: var(--blue-bg2);
 }
 
 .header-text p {
-  font-size: 24px;
+  font-size: 20px;
   color: var(--blue-bg2);
   font-weight: 600;
 }
@@ -199,7 +199,10 @@ h2 {
   font-size: clamp(18px, 3vw, 24px);
 }
 
-.muted { color: var(--muted); }
+.muted { 
+  color: var(--muted); 
+  font-size: 14px;
+}
 .center { text-align: center; }
 
 /* View system - ensure proper separation */
@@ -457,14 +460,16 @@ input[type="text"]:focus, input[type="number"]:focus {
     text-align: center;
     gap: 16px;
   }
-  
+   
   .header-text {
     min-width: auto;
   }
-  
+  .header-text h1 {
+    font-size: 1.5rem; /* Adjust the size as needed */
+   } 
   .header-image img {
-    max-width: clamp(100px, 25vw, 150px);
-  }
+    max-width: clamp(50px, 25vw, 150px);
+  } 
   
   /* Acknowledgment mobile styles */
   .acknowledgment-section {

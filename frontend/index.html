@@ -8,9 +8,11 @@
     <title>你畫我猜 -- AI猜圖擂台賽</title>
 
     <link rel="stylesheet" href="./sketch_style.css" />
+    <link rel="icon" href="./assets/favicon.png" type="image/x-icon" />
 
     <!-- p5.js for drawing (no need for p5.dom in modern p5) -->
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+    <script src="./realtime.js"></script>
     <script type="module" defer src="./sketch.js"></script>
   </head>
   <body>
@@ -19,8 +21,9 @@
       <header class="card">
         <div class="header-content">
           <div class="header-text">
-            <h1>你畫我猜 -- AI猜圖擂台賽</h1>
+            <h1>🎨🤖你畫我猜 - AI猜圖擂台賽 Quick Draw Duel!</h1>
             <p class="muted">共 6 題，每題 20 秒。玩家請在方框內依照指示詞進行作畫，AI會即時顯示預測機率。</p>
+            <p class="muted">A total of 6 questions, each with a time limit of 20 seconds. Players should draw in the box according to the given prompt, and the AI will display prediction probabilities in real time.</p>
           </div>
           <div class="header-image">
             <img src="https://d2x1gov9yn7zyc.cloudfront.net/openhouse2025/uploads/website/2/event/image/275/114.11.08_%E4%BB%A3%E8%A1%A8%E5%9C%96_%E6%B4%BB%E5%8B%95%E4%BB%A3%E8%A1%A8%E5%9C%96-%E9%81%8A%E6%88%B2-final_%E5%8D%97%E9%83%A8__114.9.9.jpg" alt="AI Drawing Game" />
@@ -61,41 +64,42 @@
           </div>
         </div>
         
-        <h2>參賽者資訊</h2>
+        <h2>參賽者資訊 Player's Info</h2>
         <div class="form-grid">
           <div class="form-row-pair">
             <div class="form-row">
-              <label for="player">姓名／暱稱</label>
+              <label for="player">姓名／暱稱 Name</label>
               <input id="player" type="text" placeholder="請輸入您的姓名或暱稱" autocomplete="off" />
             </div>
             <div class="form-row">
-              <label>性別</label>
+              <label>性別 Gender</label>
               <div class="radio-group">
-                <label><input type="radio" name="gender" value="male" /> 男</label>
-                <label><input type="radio" name="gender" value="female" /> 女</label>
-                <label><input type="radio" name="gender" value="other" /> 其他</label>
+                <label><input type="radio" name="gender" value="male" /> 男 Boy</label>
+                <label><input type="radio" name="gender" value="female" /> 女 Girl</label>
+                <label><input type="radio" name="gender" value="other" /> 其他 Others</label>
               </div>
             </div>
           </div>
           <div class="form-row-pair">
             <div class="form-row">
-              <label for="age">年齡</label>
+              <label for="age">年齡 Age</label>
               <input id="age" type="number" min="1" max="120" placeholder="例如 18" autocomplete="off" />
             </div>
             <div class="form-row">
-              <label>挑戰難度</label>
+              <label>挑戰難度 Difficulty</label>
               <div class="radio-group">
-                <label><input type="radio" name="difficulty" value="simple" checked /> 簡單</label>
-                <label><input type="radio" name="difficulty" value="hard" /> 困難</label>
+                <label><input type="radio" name="difficulty" value="simple" checked /> 簡單 Easy</label>
+                <label><input type="radio" name="difficulty" value="hard" /> 困難 Hard</label>
               </div>
             </div>
           </div>
         </div>
         <div id="formError" class="error"></div>
-        <div class="actions">
+        <div class="actions">`
           <button id="startBtn" class="btn brand">填寫完成，開始挑戰！</button>
         </div>
-        <p class="tips">提示：點擊「開始挑戰」後會進到題目說明頁，再按「我知道了」就開始作畫與倒數計時。</p>
+        <p class="tips">提示：點擊「開始挑戰」後會進到題目說明頁，再按「我知道了」就開始作畫與倒數計時。 <br /> Tips: Click "Start Challenge" to go to the instruction page, then click "Got it" to start drawing and the countdown.</p>
+
       </section>
 
       <!-- 題目說明頁（每題） -->
