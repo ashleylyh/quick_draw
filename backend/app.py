@@ -7,7 +7,8 @@ import asyncio
 import logging
 
 # Import routers and realtime modules
-from api import router as api_v1_router
+from api import router as game_router
+from dashboard_api import router as dashboard_router
 from realtime import (
     websocket_game_endpoint, 
     websocket_dashboard_endpoint, 
@@ -74,7 +75,8 @@ app.add_middleware(
 )
 
 # Include API routers
-app.include_router(api_v1_router, prefix="", tags=["API v1"])
+app.include_router(game_router, prefix="", tags=["Game API"])
+app.include_router(dashboard_router, prefix="", tags=["Dashboard API"])
 
 # WebSocket endpoints for real-time communication
 @app.websocket("/ws/game/{session_id}")
