@@ -154,101 +154,125 @@ HARD_ROUNDS = [
 ]
 
 
-def sample_unique(arr, k, rng: Optional[random.Random] = None):
-    rng = rng or random
-    pool = arr.copy()
-    out = []
-    for _ in range(k):
-        if not pool:
-            break
-        j = rng.randint(0, len(pool) - 1)
-        out.append(pool.pop(j))
-    return out
+class GameLogic:
+    def __init__(self, classes, per_round, num_rounds, pool_text, hard_rounds):
+        self.classes = classes
+        self.per_round = per_round
+        self.num_rounds = num_rounds
+        self.pool_text = pool_text
+        self.hard_rounds = hard_rounds
+        self.pools = self.parse_pools(pool_text, classes, per_round)
 
-def parse_pools(pool_text, classes, per_round):
-    pools = []
-    for line in pool_text.split('\n'):
-        if line.strip():
-            row = [item.strip() for item in line.split('\t')]
-            row = [c for c in row if c in classes]
-            if len(row) >= min(per_round, 2):
-                pools.append(row)
-    return pools
+    @staticmethod
+    def sample_unique(arr, k, rng=None):
+        rng = rng or random
+        pool = arr.copy()
+        out = []
+        for _ in range(k):
+            if not pool:
+                break
+            j = rng.randint(0, len(pool) - 1)
+            out.append(pool.pop(j))
+        return out
 
-POOLS = parse_pools(POOL_TEXT, CLASSES, PER_ROUND)
+    @staticmethod
+    def parse_pools(pool_text, classes, per_round):
+        pools = []
+        for line in pool_text.split('\n'):
+            if line.strip():
+                row = [item.strip() for item in line.split('\t')]
+                row = [c for c in row if c in classes]
+                if len(row) >= min(per_round, 2):
+                    pools.append(row)
+        return pools
 
+    @staticmethod
+    def _stable_dedupe(seq):
+        # preserves order like JS arrays
+        return list(dict.fromkeys(seq))
 
-def _stable_dedupe(seq):
-    # preserves order like JS arrays
-    return list(dict.fromkeys(seq))
+    @staticmethod
+    def _choice(seq, rng):
+        return seq[rng.randint(0, len(seq) - 1)]
 
-def _choice(seq, rng: random.Random):
-    return seq[rng.randint(0, len(seq) - 1)]
+    def build_rounds(self, difficulty, seed=None):
+        """
+        Build rounds & prompts. Different every call by default.
+        Pass a seed to reproduce (e.g., for debugging or replay).
+        """
+        rng = random.Random(seed) if seed is not None else random.Random()  # fresh per-game RNG
 
-def build_rounds(difficulty: str, *, seed: Optional[int] = None) -> Dict[str, List[List[str]]]:
-    """
-    Build rounds & prompts. Different every call by default.
-    Pass a seed to reproduce (e.g., for debugging or replay).
-    """
-    rng = random.Random(seed) if seed is not None else random.Random()  # fresh per-game RNG
+        if difficulty == 'hard':
+            base = [row for row in self.hard_rounds if all(c in self.classes for c in row)]
+            # Ensure number of rounds aligns with NUM_ROUNDS
+            if len(base) >= self.num_rounds:
+                base = rng.sample(base, self.num_rounds)
+            else:
+                # If fewer templates than needed, cycle them
+                base = [base[i % len(base)] for i in range(self.num_rounds)]
 
-    if difficulty == 'hard':
-        base = [row for row in HARD_ROUNDS if all(c in CLASSES for c in row)]
-        # Ensure number of rounds aligns with NUM_ROUNDS
-        if len(base) >= NUM_ROUNDS:
-            base = rng.sample(base, NUM_ROUNDS)
-        else:
-            # If fewer templates than needed, cycle them
-            base = [base[i % len(base)] for i in range(NUM_ROUNDS)]
+            rounds, prompts = [], []
+            for row in base:
+                picked = self.sample_unique(row, min(self.per_round, len(row)), rng=rng)
+                prompt = self._choice(picked, rng)
+                choices = list(picked)                       # CHANGED: no backfill
+                if prompt not in choices:                    # (defensive; normally already included)
+                    choices.append(prompt)
+                rng.shuffle(choices)                         # CHANGED: just shuffle
+                rounds.append(choices)
+                prompts.append(prompt)
+            return {"rounds": rounds, "prompts": prompts}
 
-        rounds, prompts = [], []
-        for row in base:
-            picked = sample_unique(row, min(PER_ROUND, len(row)), rng=rng)
-            prompt = _choice(picked, rng)
-            choices = list(picked)                       # CHANGED: no backfill
-            if prompt not in choices:                    # (defensive; normally already included)
-                choices.append(prompt)
-            rng.shuffle(choices)                         # CHANGED: just shuffle
+        # easy/default
+        if not self.pools:
+            rounds, prompts = [], []
+            for _ in range(self.num_rounds):
+                picked = self.sample_unique(self.classes, min(self.per_round, len(self.classes)), rng=rng)
+                prompt = self._choice(picked if picked else self.classes, rng)
+                choices = list(picked)                       # CHANGED: no backfill
+                if prompt not in choices:                    # (defensive; normally already included)
+                    choices.append(prompt)
+                rng.shuffle(choices)                         # CHANGED: just shuffle
+                rounds.append(choices)
+                prompts.append(prompt)
+            return {"rounds": rounds, "prompts": prompts}
+
+        # POOLS present → choose one base row, like the JS
+        base_row = self._choice(self.pools, rng)
+        pool_set = self._stable_dedupe([c for c in base_row if c in self.classes])
+
+        shuffled = pool_set[:]  # prompts should be distinct first, then cycle
+        rng.shuffle(shuffled)
+        unique_count = min(self.num_rounds, len(shuffled))
+
+        prompts = []
+        for i in range(self.num_rounds):
+            if i < unique_count:
+                prompts.append(shuffled[i])
+            else:
+                prompts.append(pool_set[i % len(pool_set)])  # cycle
+
+        rounds = []
+        for prompt in prompts:
+            others = [x for x in pool_set if x != prompt]
+            need = max(0, min(self.per_round - 1, len(others)))
+            sampled = self.sample_unique(others, need, rng=rng)
+            choices = sampled + [prompt]
+            rng.shuffle(choices)
             rounds.append(choices)
-            prompts.append(prompt)
+
         return {"rounds": rounds, "prompts": prompts}
 
-    # easy/default
-    if not POOLS:
-        rounds, prompts = [], []
-        for _ in range(NUM_ROUNDS):
-            picked = sample_unique(CLASSES, min(PER_ROUND, len(CLASSES)), rng=rng)
-            prompt = _choice(picked if picked else CLASSES, rng)
-            choices = list(picked)                       # CHANGED: no backfill
-            if prompt not in choices:                    # (defensive; normally already included)
-                choices.append(prompt)
-            rng.shuffle(choices)                         # CHANGED: just shuffle
-            rounds.append(choices)
-            prompts.append(prompt)
-        return {"rounds": rounds, "prompts": prompts}
 
-    # POOLS present → choose one base row, like the JS
-    base_row = _choice(POOLS, rng)
-    pool_set = _stable_dedupe([c for c in base_row if c in CLASSES])
+# Initialize the GameLogic class with constants
+with open("classes.json", "r") as f:
+    classes_data = json.load(f)
+    CLASSES = classes_data["CLASSES"]
 
-    shuffled = pool_set[:]  # prompts should be distinct first, then cycle
-    rng.shuffle(shuffled)
-    unique_count = min(NUM_ROUNDS, len(shuffled))
-
-    prompts = []
-    for i in range(NUM_ROUNDS):
-        if i < unique_count:
-            prompts.append(shuffled[i])
-        else:
-            prompts.append(pool_set[i % len(pool_set)])  # cycle
-
-    rounds = []
-    for prompt in prompts:
-        others = [x for x in pool_set if x != prompt]
-        need = max(0, min(PER_ROUND - 1, len(others)))
-        sampled = sample_unique(others, need, rng=rng)
-        choices = sampled + [prompt]
-        rng.shuffle(choices)
-        rounds.append(choices)
-
-    return {"rounds": rounds, "prompts": prompts}
+game_logic = GameLogic(
+    classes=CLASSES,
+    per_round=PER_ROUND,
+    num_rounds=NUM_ROUNDS,
+    pool_text=POOL_TEXT,
+    hard_rounds=HARD_ROUNDS
+)

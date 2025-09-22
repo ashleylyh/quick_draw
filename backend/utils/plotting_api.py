@@ -1,25 +1,20 @@
 """
 Enhanced plotting API with Redis storage support for both UMAP and radar charts.
 """
-
-import os
 import json
 from typing import Dict, Any, List, Optional
 import pandas as pd
-from redis_utils import get_redis
-from umap_auto import plot_umap_with_user
-from radar_chart_auto import create_radar_from_session_data
-
+from utils.redis_utils import get_redis
+from utils.umap_auto import umap
+from utils.radar_chart_auto import radar_chart
+from config import FILE_EMB_5, FILE_UMAP, FILE_UMAP_REDUCER, NOTOSANSTC_PATH
 
 class PlottingAPI:
     """Enhanced plotting API with Redis storage support."""
     
-    def __init__(self, redis_expire_sec: int = 3600):
+    def __init__(self):
         """
         Initialize plotting API.
-        
-        Args:
-            redis_expire_sec: Default expiration time for Redis keys
         """
         # self.redis_expire_sec = redis_expire_sec
         self.redis_client = get_redis()
@@ -49,9 +44,9 @@ class PlottingAPI:
             
             # Default paths - adjust these based on your setup
             default_params = {
-                "raw_embedding_csv": "./feature/background_embedding_5per_class.csv",
-                "umap_background_csv": "./feature/background_Umap.csv", 
-                "umap_reducer_path": "./feature/background_Umap_top72.joblib",
+                "raw_embedding_csv": FILE_EMB_5,
+                "umap_background_csv": FILE_UMAP,
+                "umap_reducer_path": FILE_UMAP_REDUCER,
                 "feature_cols": [f"emb_{i}" for i in range(512)],
                 "input_class_col": "prompt",
                 "bg_class_col": "class",
@@ -68,14 +63,14 @@ class PlottingAPI:
                 "annotate": True,
                 "redis_key": redis_key,
                 "show": False,
-                "font_path": "../frontend/fonts/NotoSansTC.ttf"
+                "font_path": NOTOSANSTC_PATH
             }
             
             # Update with any provided kwargs
             default_params.update(kwargs)
             
             # Create the plot
-            result = plot_umap_with_user(
+            result = umap.plot_umap_with_user(
                 user_embedding_df=user_embedding_df,
                 **default_params
             )
@@ -135,7 +130,7 @@ class PlottingAPI:
             redis_key = f"radar_plot:{session_id}"
             
             # Create radar chart
-            result = create_radar_from_session_data(
+            result = radar_chart.create_radar_from_session_data(
                 session_drawings=session_drawings,
                 **kwargs
             )
