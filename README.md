@@ -1,7 +1,8 @@
 
 # Quick Draw — AI Drawing Duel
 
-A lightweight web app for a Quick, Draw!-style AI drawing duel. Frontend lets players draw sketches and the backend returns model predictions, embeddings, and visualizations (UMAP / radar). This README explains setup, how to run the project, and documents the main backend API and data layout.
+
+A lightweight web app for a Quick, Draw! AI drawing duel. Frontend lets players draw sketches and the backend returns model predictions, embeddings, and visualizations (UMAP / radar). This README explains setup, how to run the project, and documents the main backend API and data layout.
 
 ## Prerequisites
 - Python 3.12 (pyproject specifies 3.12.3)
