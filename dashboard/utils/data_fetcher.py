@@ -59,7 +59,7 @@ class DataFetcher:
                             session_data['total_score'] = self.calculate_session_score(drawings)
                         
                         sessions.append(session_data)
-        
+            # print(f"[DEBUG] Fetched {len(sessions)} sessions from Redis")
         except Exception as e:
             print(f"Error fetching sessions: {e}")
         
@@ -96,6 +96,7 @@ class DataFetcher:
             
             # Sort by round number
             drawings.sort(key=lambda x: x.get('round', 0))
+            # print(f"[DEBUG] Fetched {len(drawings)} drawings for session {session_id}")
         
         except Exception as e:
             print(f"Error fetching drawings for session {session_id}: {e}")
@@ -108,14 +109,16 @@ class DataFetcher:
         
         for drawing in drawings:
             predictions = drawing.get('predictions', {})
-            target_class = drawing.get('target_class', '')
+            target_class = drawing.get('prompt', '')
+            # print(f"Calculating score for drawing with target class '{target_class}' and predictions {predictions}")
             
             if target_class in predictions:
-                confidence = predictions[target_class]
+                score = predictions[target_class]*100
                 # Score based on confidence and time
-                time_bonus = max(0, 1 - (drawing.get('time_spent_sec', 30) / 30))  # Assume 30s max
-                score = confidence * (1 + time_bonus * 0.5)  # 50% time bonus
+                # time_bonus = max(0, 1 - (drawing.get('time_spent_sec', 30) / 30))  # Assume 30s max
+                # score = confidence * (1 + time_bonus * 0.5)  # 50% time bonus
                 total_score += score
+        # print(f"Calculated session score: {total_score}"    )
         
         return round(total_score, 2)
     
@@ -157,7 +160,7 @@ class DataFetcher:
     
     def get_ranking_data(self, sessions: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
         """Get ranking data organized by difficulty"""
-        rankings = {'easy': [], 'medium': [], 'hard': []}
+        rankings = {'easy': [], 'hard': []}
         
         for session in sessions:
             difficulty = session.get('difficulty', 'easy')
@@ -180,7 +183,7 @@ class DataFetcher:
     
     def get_score_distribution(self, sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Get score distribution data for histogram"""
-        scores_by_difficulty = {'easy': [], 'medium': [], 'hard': []}
+        scores_by_difficulty = {'easy': [], 'hard': []}
         
         for session in sessions:
             difficulty = session.get('difficulty', 'easy')

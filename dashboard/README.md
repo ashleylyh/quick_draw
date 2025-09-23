@@ -11,7 +11,7 @@ A comprehensive Streamlit-powered dashboard for analyzing QuickDraw game perform
 - **Difficulty Popularity**: Most played difficulty levels
 
 ### 🏆 Rankings System
-- **Difficulty-based Rankings**: Separate leaderboards for Easy, Medium, and Hard levels
+- **Difficulty-based Rankings**: Separate leaderboards for Easy and Hard levels
 - **Podium Display**: Visual top 3 players with medals
 - **Complete Rankings Table**: Full player listings with scores and statistics
 - **Cross-difficulty Comparison**: Performance metrics across all difficulty levels

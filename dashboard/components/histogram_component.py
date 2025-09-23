@@ -6,8 +6,20 @@ import plotly.figure_factory as ff
 import numpy as np
 from typing import List, Dict, Any
 
+label_map = {'easy': '簡單', 'hard': '困難'}
+
 def show_score_histogram(sessions_data: List[Dict[str, Any]]):
-    """Display score distribution histograms and statistics"""
+    """Display score di        fig_mean =                'Hard': '#F44336',x.bar(
+            stats_df,
+            x='Difficulty',
+            y='Mean',
+            title="Average Score by Difficulty",
+            color='Difficulty',
+            color_discrete_map={
+                'Easy': '#4CAF50',
+                'Hard': '#F44336'
+            }
+        )istograms and statistics"""
     
     if not sessions_data:
         st.info("No data available for score analysis.")
@@ -20,19 +32,17 @@ def show_score_histogram(sessions_data: List[Dict[str, Any]]):
     data_fetcher = DataFetcher()
     score_data = data_fetcher.get_score_distribution(sessions_data)
     
-    st.header("📈 Score Distribution Analysis")
+    # st.header("📈 分數分佈分析")
     
     # Analysis type selection
     analysis_type = st.selectbox(
-        "Choose Analysis Type",
-        ["Combined Analysis", "Individual Difficulty", "Comparative Analysis", "Statistical Summary"]
+        "選擇分析類型",
+        ["組合分析", "比較分析", "統計摘要"]
     )
     
-    if analysis_type == "Combined Analysis":
+    if analysis_type == "組合分析":
         show_combined_analysis(score_data)
-    elif analysis_type == "Individual Difficulty":
-        show_individual_analysis(score_data)
-    elif analysis_type == "Comparative Analysis":
+    elif analysis_type == "比較分析":
         show_comparative_analysis(score_data)
     else:
         show_statistical_summary(score_data, sessions_data)
@@ -44,7 +54,7 @@ def show_combined_analysis(score_data: Dict[str, List[float]]):
     all_scores = []
     all_difficulties = []
     
-    colors = {'easy': '#4CAF50', 'medium': '#FF9800', 'hard': '#F44336'}
+    colors = {'easy': '#4CAF50', 'hard': '#F44336'}
     
     for difficulty, scores in score_data.items():
         all_scores.extend(scores)
@@ -61,166 +71,176 @@ def show_combined_analysis(score_data: Dict[str, List[float]]):
     })
     
     # Overlapping histograms
-    st.subheader("Score Distribution by Difficulty")
+    st.subheader("難度分數分佈")
     
     fig = go.Figure()
     
-    for difficulty in ['Easy', 'Medium', 'Hard']:
-        if difficulty in df['Difficulty'].values:
+    # Map difficulty labels to Chinese for display
+    df['Difficulty_CN'] = df['Difficulty'].str.lower().map(label_map)
+    
+    for difficulty in ['Easy', 'Hard']:
+        key = difficulty.lower()
+        if key in score_data and score_data[key]:
             difficulty_scores = df[df['Difficulty'] == difficulty]['Score']
+            difficulty_cn = label_map.get(key, difficulty)
             fig.add_trace(go.Histogram(
                 x=difficulty_scores,
-                name=difficulty,
+                name=difficulty_cn,
                 opacity=0.7,
-                marker_color=colors[difficulty.lower()],
+                marker_color=colors[key],
                 nbinsx=20
             ))
     
     fig.update_layout(
-        title="Score Distribution Across All Difficulties",
-        xaxis_title="Score",
-        yaxis_title="Number of Players",
+        title="所有難度的分數分佈",
+        xaxis_title="分數",
+        yaxis_title="玩家人數",
         barmode='overlay',
         height=500
     )
     
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
     
     # Box plot for comparison
-    st.subheader("Score Distribution Box Plot")
+    st.subheader("分數分佈箱型圖")
     
     fig_box = px.box(
         df, 
-        x='Difficulty', 
+        x='Difficulty_CN', 
         y='Score',
-        title="Score Distribution Statistics by Difficulty",
-        color='Difficulty',
+        title="各難度分數分佈統計",
+        color='Difficulty_CN',
         color_discrete_map={
-            'Easy': '#4CAF50',
-            'Medium': '#FF9800',
-            'Hard': '#F44336'
-        }
+            label_map['easy']: '#4CAF50',
+            label_map['hard']: '#F44336'
+        },
+        labels={'Difficulty_CN': '難度', 'Score': '分數'}
     )
     
-    fig_box.update_layout(height=400)
-    st.plotly_chart(fig_box, use_container_width=True)
+    fig_box.update_layout(
+        height=400,
+        xaxis_title="難度",
+        yaxis_title="分數",
+        legend_title_text="難度"
+    )
+    st.plotly_chart(fig_box, width='stretch')
 
-def show_individual_analysis(score_data: Dict[str, List[float]]):
-    """Show detailed analysis for individual difficulties"""
+# def show_individual_analysis(score_data: Dict[str, List[float]]):
+#     """Show detailed analysis for individual difficulties"""
     
-    difficulty_choice = st.selectbox(
-        "Select Difficulty Level",
-        ["Easy", "Medium", "Hard"]
-    )
+#     difficulty_choice = st.selectbox(
+#         "Select Difficulty Level",
+#         ["Easy", "Hard"]
+#     )
     
-    difficulty_key = difficulty_choice.lower()
-    scores = score_data.get(difficulty_key, [])
+#     difficulty_key = difficulty_choice.lower()
+#     scores = score_data.get(difficulty_key, [])
     
-    if not scores:
-        st.info(f"No data available for {difficulty_choice} difficulty.")
-        return
+#     if not scores:
+#         st.info(f"No data available for {difficulty_choice} difficulty.")
+#         return
     
-    colors = {'easy': '#4CAF50', 'medium': '#FF9800', 'hard': '#F44336'}
-    color = colors[difficulty_key]
+#     colors = {'easy': '#4CAF50', 'hard': '#F44336'}
+#     color = colors[difficulty_key]
     
-    # Basic statistics
-    col1, col2, col3, col4 = st.columns(4)
+#     # Basic statistics
+#     col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.metric("Total Players", len(scores))
+#     with col1:
+#         st.metric("Total Players", len(scores))
     
-    with col2:
-        st.metric("Average Score", f"{np.mean(scores):.1f}")
+#     with col2:
+#         st.metric("Average Score", f"{np.mean(scores):.1f}")
     
-    with col3:
-        st.metric("Median Score", f"{np.median(scores):.1f}")
+#     with col3:
+#         st.metric("Median Score", f"{np.median(scores):.1f}")
     
-    with col4:
-        st.metric("Max Score", f"{np.max(scores):.1f}")
+#     with col4:
+#         st.metric("Max Score", f"{np.max(scores):.1f}")
     
-    # Detailed histogram
-    st.subheader(f"{difficulty_choice} Difficulty - Score Distribution")
+#     # Detailed histogram
+#     st.subheader(f"{difficulty_choice} Difficulty - Score Distribution")
     
-    # Calculate optimal number of bins
-    n_bins = min(max(10, len(scores) // 5), 30)
+#     # Calculate optimal number of bins
+#     n_bins = min(max(10, len(scores) // 5), 30)
     
-    fig = go.Figure()
-    fig.add_trace(go.Histogram(
-        x=scores,
-        nbinsx=n_bins,
-        marker_color=color,
-        opacity=0.8,
-        name=f"{difficulty_choice} Scores"
-    ))
+#     fig = go.Figure()
+#     fig.add_trace(go.Histogram(
+#         x=scores,
+#         nbinsx=n_bins,
+#         marker_color=color,
+#         opacity=0.8,
+#         name=f"{difficulty_choice} Scores"
+#     ))
     
-    # Add statistical lines
-    mean_score = np.mean(scores)
-    median_score = np.median(scores)
+#     # Add statistical lines
+#     mean_score = np.mean(scores)
+#     median_score = np.median(scores)
     
-    fig.add_vline(x=mean_score, line_dash="dash", line_color="red", 
-                  annotation_text=f"Mean: {mean_score:.1f}")
-    fig.add_vline(x=median_score, line_dash="dot", line_color="blue", 
-                  annotation_text=f"Median: {median_score:.1f}")
+#     fig.add_vline(x=mean_score, line_dash="dash", line_color="red", 
+#                   annotation_text=f"Mean: {mean_score:.1f}")
+#     fig.add_vline(x=median_score, line_dash="dot", line_color="blue", 
+#                   annotation_text=f"Median: {median_score:.1f}")
     
-    fig.update_layout(
-        title=f"Score Distribution - {difficulty_choice} Difficulty",
-        xaxis_title="Score",
-        yaxis_title="Number of Players",
-        height=500
-    )
+#     fig.update_layout(
+#         title=f"Score Distribution - {difficulty_choice} Difficulty",
+#         xaxis_title="Score",
+#         yaxis_title="Number of Players",
+#         height=500
+#     )
     
-    st.plotly_chart(fig, use_container_width=True)
+#     st.plotly_chart(fig, width='stretch')
     
-    # Percentile analysis
-    st.subheader("Percentile Analysis")
+#     # Percentile analysis
+#     st.subheader("Percentile Analysis")
     
-    percentiles = [10, 25, 50, 75, 90, 95, 99]
-    percentile_values = [np.percentile(scores, p) for p in percentiles]
+#     percentiles = [10, 25, 50, 75, 90, 95, 99]
+#     percentile_values = [np.percentile(scores, p) for p in percentiles]
     
-    df_percentiles = pd.DataFrame({
-        'Percentile': [f"{p}th" for p in percentiles],
-        'Score': percentile_values
-    })
+#     df_percentiles = pd.DataFrame({
+#         'Percentile': [f"{p}th" for p in percentiles],
+#         'Score': percentile_values
+#     })
     
-    fig_percentiles = px.bar(
-        df_percentiles,
-        x='Percentile',
-        y='Score',
-        title=f"Score Percentiles - {difficulty_choice} Difficulty",
-        color='Score',
-        color_continuous_scale='Viridis'
-    )
+#     fig_percentiles = px.bar(
+#         df_percentiles,
+#         x='Percentile',
+#         y='Score',
+#         title=f"Score Percentiles - {difficulty_choice} Difficulty",
+#         color='Score',
+#         color_continuous_scale='Viridis'
+#     )
     
-    st.plotly_chart(fig_percentiles, use_container_width=True)
+#     st.plotly_chart(fig_percentiles, width='stretch')
     
-    # Performance categories
-    st.subheader("Performance Categories")
+#     # Performance categories
+#     st.subheader("Performance Categories")
     
-    # Define score ranges
-    q25, q75 = np.percentile(scores, [25, 75])
+#     # Define score ranges
+#     q25, q75 = np.percentile(scores, [25, 75])
     
-    categories = {
-        'Beginner': len([s for s in scores if s < q25]),
-        'Intermediate': len([s for s in scores if q25 <= s < q75]),
-        'Advanced': len([s for s in scores if s >= q75])
-    }
+#     categories = {
+#         'Beginner': len([s for s in scores if s < q25]),
+#         'Intermediate': len([s for s in scores if q25 <= s < q75]),
+#         'Advanced': len([s for s in scores if s >= q75])
+#     }
     
-    df_categories = pd.DataFrame(list(categories.items()), columns=['Category', 'Players'])
+#     df_categories = pd.DataFrame(list(categories.items()), columns=['Category', 'Players'])
     
-    fig_pie = px.pie(
-        df_categories,
-        values='Players',
-        names='Category',
-        title=f"Player Skill Distribution - {difficulty_choice}",
-        color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1']
-    )
+#     fig_pie = px.pie(
+#         df_categories,
+#         values='Players',
+#         names='Category',
+#         title=f"Player Skill Distribution - {difficulty_choice}",
+#         color_discrete_sequence=['#FF6B6B', '#4ECDC4', '#45B7D1']
+#     )
     
-    st.plotly_chart(fig_pie, use_container_width=True)
+#     st.plotly_chart(fig_pie, width='stretch')
 
 def show_comparative_analysis(score_data: Dict[str, List[float]]):
     """Show comparative analysis across difficulties"""
     
-    st.subheader("Cross-Difficulty Comparison")
+    st.subheader("跨難度比較")
     
     # Prepare comparative statistics
     stats_data = []
@@ -228,14 +248,14 @@ def show_comparative_analysis(score_data: Dict[str, List[float]]):
     for difficulty, scores in score_data.items():
         if scores:
             stats_data.append({
-                'Difficulty': difficulty.title(),
-                'Players': len(scores),
-                'Mean': np.mean(scores),
-                'Median': np.median(scores),
-                'Std Dev': np.std(scores),
-                'Min': np.min(scores),
-                'Max': np.max(scores),
-                'Range': np.max(scores) - np.min(scores)
+                '難度': label_map.get(difficulty, difficulty),
+                '玩家數量': len(scores),
+                '平均分數': np.mean(scores),
+                '中位數': np.median(scores),
+                '標準差': np.std(scores),
+                '最小值': np.min(scores),
+                '最大值': np.max(scores),
+                '分數範圍': np.max(scores) - np.min(scores)
             })
     
     if not stats_data:
@@ -245,37 +265,37 @@ def show_comparative_analysis(score_data: Dict[str, List[float]]):
     df_stats = pd.DataFrame(stats_data)
     
     # Display statistics table
-    st.subheader("Statistical Comparison")
-    st.dataframe(df_stats, use_container_width=True, hide_index=True)
+    st.subheader("統計比較")
+    st.dataframe(df_stats, width='stretch', hide_index=True)
     
     # Violin plot for distribution comparison
-    st.subheader("Distribution Shape Comparison")
+    st.subheader("分佈形狀比較")
     
     # Prepare data for violin plot
     plot_data = []
     for difficulty, scores in score_data.items():
         for score in scores:
-            plot_data.append({'Difficulty': difficulty.title(), 'Score': score})
+            difficulty = label_map.get(difficulty, difficulty)
+            plot_data.append({'難度': difficulty, '分數': score})
     
     if plot_data:
         df_plot = pd.DataFrame(plot_data)
         
         fig_violin = px.violin(
             df_plot,
-            x='Difficulty',
-            y='Score',
-            title="Score Distribution Shapes by Difficulty",
-            color='Difficulty',
+            x='難度',
+            y='分數',
+            title="按難度劃分的分數分佈形狀",
+            color='難度',
             color_discrete_map={
-                'Easy': '#4CAF50',
-                'Medium': '#FF9800',
-                'Hard': '#F44336'
+                label_map['easy']: '#4CAF50',
+                label_map['hard']: '#F44336'
             },
             box=True
         )
         
         fig_violin.update_layout(height=500)
-        st.plotly_chart(fig_violin, use_container_width=True)
+        st.plotly_chart(fig_violin, width='stretch')
     
     # Mean comparison chart
     col1, col2 = st.columns(2)
@@ -283,37 +303,35 @@ def show_comparative_analysis(score_data: Dict[str, List[float]]):
     with col1:
         fig_mean = px.bar(
             df_stats,
-            x='Difficulty',
-            y='Mean',
-            title="Average Score by Difficulty",
-            color='Difficulty',
+            x='難度',
+            y='平均分數',
+            title="按難度劃分的平均分數",
+            color='難度',
             color_discrete_map={
-                'Easy': '#4CAF50',
-                'Medium': '#FF9800',
-                'Hard': '#F44336'
-            }
+                label_map['easy']: '#4CAF50',
+                label_map['hard']: '#F44336'
+            },
         )
-        st.plotly_chart(fig_mean, use_container_width=True)
+        st.plotly_chart(fig_mean, width='stretch')
     
     with col2:
         fig_range = px.bar(
             df_stats,
-            x='Difficulty',
-            y='Range',
-            title="Score Range by Difficulty",
-            color='Difficulty',
+            x='難度',
+            y='分數範圍',
+            title="按難度劃分的分數範圍",
+            color='難度',
             color_discrete_map={
-                'Easy': '#4CAF50',
-                'Medium': '#FF9800',
-                'Hard': '#F44336'
+                label_map['easy']: '#4CAF50',
+                label_map['hard']: '#F44336'
             }
         )
-        st.plotly_chart(fig_range, use_container_width=True)
+        st.plotly_chart(fig_range, width='stretch')
 
 def show_statistical_summary(score_data: Dict[str, List[float]], sessions_data: List[Dict[str, Any]]):
     """Show detailed statistical summary"""
     
-    st.subheader("Comprehensive Statistical Analysis")
+    st.subheader("全面的統計分析s")
     
     # Overall statistics
     all_scores = []
@@ -328,22 +346,22 @@ def show_statistical_summary(score_data: Dict[str, List[float]], sessions_data: 
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        st.metric("Total Games", len(all_scores))
+        st.metric("總遊戲數", len(all_scores))
     
     with col2:
-        st.metric("Overall Mean", f"{np.mean(all_scores):.1f}")
+        st.metric("整體平均", f"{np.mean(all_scores):.1f}")
     
     with col3:
-        st.metric("Overall Median", f"{np.median(all_scores):.1f}")
+        st.metric("整體中位數", f"{np.median(all_scores):.1f}")
     
     with col4:
-        st.metric("Standard Deviation", f"{np.std(all_scores):.1f}")
+        st.metric("標準差", f"{np.std(all_scores):.1f}")
     
     with col5:
-        st.metric("Score Range", f"{np.max(all_scores) - np.min(all_scores):.1f}")
+        st.metric("分數範圍", f"{np.max(all_scores) - np.min(all_scores):.1f}")
     
-    # Advanced statistics
-    st.subheader("Advanced Metrics")
+    # 進階統計
+    st.subheader("進階指標")
     
     # Calculate additional metrics
     try:
@@ -356,62 +374,62 @@ def show_statistical_summary(score_data: Dict[str, List[float]], sessions_data: 
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Distribution Properties")
+        st.subheader("分佈特性")
         
         if scipy_available:
             skewness = stats.skew(all_scores)
             kurtosis = stats.kurtosis(all_scores)
             
-            st.write(f"**Skewness:** {skewness:.3f}")
+            st.write(f"**偏態 (Skewness)：** {skewness:.3f}")
             if skewness > 0:
-                st.write("↗️ Right-skewed (tail extends to higher scores)")
+                st.write("↗️ 右偏（分數分佈尾巴延伸至較高分）")
             elif skewness < 0:
-                st.write("↖️ Left-skewed (tail extends to lower scores)")
+                st.write("↖️ 左偏（分數分佈尾巴延伸至較低分）")
             else:
-                st.write("➡️ Approximately symmetric")
+                st.write("➡️ 近似對稱")
             
-            st.write(f"**Kurtosis:** {kurtosis:.3f}")
+            st.write(f"**峰態 (Kurtosis)：** {kurtosis:.3f}")
             if kurtosis > 0:
-                st.write("📈 Heavy-tailed (more extreme scores)")
+                st.write("📈 高峰厚尾（極端分數較多）")
             else:
-                st.write("📉 Light-tailed (fewer extreme scores)")
+                st.write("📉 低峰薄尾（極端分數較少）")
         else:
-            st.write("Advanced distribution metrics require SciPy installation")
+            st.write("SciPy not available. Some advanced statistics will be skipped.")
     
     with col2:
-        st.subheader("Player Demographics Impact")
+        st.subheader("玩家人口統計影響")
         
-        # Analyze score by age groups
+        # 依年齡分組分析分數
         age_scores = {}
         for session in sessions_data:
-            age = session.get('age', 0)
+            age = int(session.get('age', 0))
             score = session.get('total_score', 0)
             if age > 0:
-                age_group = f"{(age//10)*10}s"
+                age_group = f"{(age//10)*10}歲"
                 if age_group not in age_scores:
                     age_scores[age_group] = []
                 age_scores[age_group].append(score)
         
         if age_scores:
-            st.write("**Average Score by Age Group:**")
+            st.write("**各年齡層平均分數：**")
             for age_group, scores in sorted(age_scores.items()):
                 avg_score = np.mean(scores)
-                st.write(f"- {age_group}: {avg_score:.1f} ({len(scores)} players)")
+                st.write(f"- {age_group}: {avg_score:.1f} 分（{len(scores)} 位玩家）")
     
-    # Normal distribution test
-    st.subheader("Distribution Analysis")
+    # 常態分佈檢驗
+    st.subheader("分佈分析")
     
     if scipy_available:
         # Shapiro-Wilk test for normality (if sample size is appropriate)
         if 3 <= len(all_scores) <= 5000:
             shapiro_stat, shapiro_p = stats.shapiro(all_scores)
-            st.write(f"**Normality Test (Shapiro-Wilk):**")
-            st.write(f"- Statistic: {shapiro_stat:.4f}")
-            st.write(f"- P-value: {shapiro_p:.4f}")
+            st.write(f"**常態性檢驗（Shapiro-Wilk）:**")
+            st.write(f"- 統計量: {shapiro_stat:.4f}")
+            st.write(f"- P 值: {shapiro_p:.4f}")
             if shapiro_p < 0.05:
-                st.write("❌ Scores are NOT normally distributed")
+                st.write("❌ 分數分佈不符合常態分佈")
             else:
-                st.write("✅ Scores appear to be normally distributed")
+                st.write("✅ 分數分佈近似常態分佈")
         
         # Q-Q plot
         fig_qq = go.Figure()
@@ -425,7 +443,7 @@ def show_statistical_summary(score_data: Dict[str, List[float]], sessions_data: 
             x=theoretical_quantiles,
             y=sorted_scores,
             mode='markers',
-            name='Actual vs Theoretical',
+            name='實際 vs 理論',
             marker=dict(color='blue', size=6)
         ))
         
@@ -436,17 +454,17 @@ def show_statistical_summary(score_data: Dict[str, List[float]], sessions_data: 
             x=[min_val, max_val],
             y=[min_val, max_val],
             mode='lines',
-            name='Perfect Normal',
+            name='完美常態',
             line=dict(color='red', dash='dash')
         ))
         
         fig_qq.update_layout(
-            title="Q-Q Plot: Actual Scores vs Normal Distribution",
-            xaxis_title="Theoretical Quantiles",
-            yaxis_title="Actual Scores",
+            title="Q-Q Plot: 實際分數 vs 理論分佈",
+            xaxis_title="理論分位數",
+            yaxis_title="實際分數",
             height=400
         )
         
-        st.plotly_chart(fig_qq, use_container_width=True)
+        st.plotly_chart(fig_qq, width='stretch')
     else:
         st.write("Advanced distribution analysis requires SciPy installation")

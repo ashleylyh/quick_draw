@@ -1,5 +1,4 @@
 # Dashboard Configuration
-
 import os
 from typing import Dict, Any
 
@@ -17,13 +16,12 @@ DEFAULT_CONFIG = {
     "auto_refresh_interval": 30,  # seconds
     "max_players_in_charts": 20,
     "default_time_range": "All time",
-    "default_difficulties": ["easy", "medium", "hard"],
+    "default_difficulties": ["easy", "hard"],
     
     # Chart settings
     "chart_height": 400,
     "color_scheme": {
         "easy": "#4CAF50",
-        "medium": "#FF9800",
         "hard": "#F44336"
     },
     
