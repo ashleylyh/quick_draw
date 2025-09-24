@@ -480,7 +480,7 @@ window.restartGame = function restartGame() {
   if ($('player')) $('player').value = ''; if ($('age')) $('age').value = '';
   document.querySelectorAll('input[name="gender"]:checked').forEach(g=>g.checked=false);
   document.querySelectorAll('input[name="difficulty"]:checked').forEach(d=>d.checked=false);
-  playerName = ''; playerGender = ''; playerAge = ''; difficulty = 'simple';
+  playerName = ''; playerGender = ''; playerAge = ''; difficulty = 'easy';
   activeRounds = []; activePrompts = []; logs.length = 0;
   sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
   showView('view-form');
