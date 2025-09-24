@@ -119,19 +119,27 @@ async def root():
 # Error handlers
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
-    return {
-        "error": "Not Found",
-        "message": "The requested resource was not found",
-        "path": str(request.url.path)
-    }
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=404,
+        content={
+            "error": "Not Found",
+            "message": "The requested resource was not found",
+            "path": str(request.url.path)
+        }
+    )
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc):
+    from fastapi.responses import JSONResponse
     logger.error(f"Internal server error: {exc}")
-    return {
-        "error": "Internal Server Error", 
-        "message": "An unexpected error occurred"
-    }
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error", 
+            "message": "An unexpected error occurred"
+        }
+    )
 
 if __name__ == "__main__":
     import os
