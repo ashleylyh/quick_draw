@@ -129,7 +129,9 @@ class DataFetcher:
         
         # Calculate time threshold
         now = datetime.now()
-        if time_range == "Last 24 hours":
+        if time_range == "Last 1 hour":
+            threshold = now - timedelta(hours=1)
+        elif time_range == "Last 24 hours":
             threshold = now - timedelta(hours=24)
         elif time_range == "Last 7 days":
             threshold = now - timedelta(days=7)
