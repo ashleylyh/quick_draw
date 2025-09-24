@@ -71,7 +71,7 @@ class RankingsTab(BaseTab):
                     players[1], 
                     second_title, 
                     "#000000",  # pale silver
-                    "linear-gradient(135deg, #D0D0D0, #F5F5F5)", 
+                    "linear-gradient(135deg, #C0C0C0, #F5F5F5)", 
                     position="2nd"), 
                     unsafe_allow_html=True)
             

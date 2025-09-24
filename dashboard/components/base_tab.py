@@ -18,8 +18,8 @@ class BaseTab(ABC):
         self.language = language
         
         # Color constants for consistent theming
-        self.EASY_COLOR = '#4CAF50'  # Green for easy difficulty
-        self.HARD_COLOR = '#F44336'  # Red for hard difficulty
+        self.EASY_COLOR = '#43A047'  # Green for easy difficulty
+        self.HARD_COLOR = '#E53935'  # Red for hard difficulty
         
         # Language mappings
         self.label_map = {'easy': '簡單', 'hard': '困難'}

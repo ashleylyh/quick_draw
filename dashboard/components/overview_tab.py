@@ -29,12 +29,12 @@ class OverviewTab(BaseTab):
         with mcol1:
             css = """
             .st-key-my_yellow_container1 {
-                background-color: #F2F0ED;
+                background-color: #F5F5F5;
                 border-radius: 10px;
                 padding: 1rem;
                 margin: 0.25rem 0;
                 box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-                border: 2px solid #F5F0E1;
+                border: 2px solid #E0E0E0;
             }
             """
             st.html(f"<style>{css}</style>")

@@ -176,7 +176,7 @@ class ScoreAnalysisTab(BaseTab):
                     y=avg_scores,
                     text=player_counts,
                     textposition='auto',
-                    marker_color="#FFF0A8"
+                    marker_color="#FBC02D"
                 )
             ])
             fig.update_layout(
