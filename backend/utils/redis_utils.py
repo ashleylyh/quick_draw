@@ -8,10 +8,15 @@ def get_redis():
     """Get or create a Redis client (singleton)."""
     global _redis_client
     if _redis_client is None:
+        # Use environment variables if available (for Docker), otherwise use config
+        redis_host = os.getenv('REDIS_HOST', REDIS_HOST)
+        redis_port = int(os.getenv('REDIS_PORT', REDIS_PORT))
+        redis_db = int(os.getenv('REDIS_DB', REDIS_DB))
+        
         _redis_client = redis.Redis(
-            host=REDIS_HOST,
-            port=REDIS_PORT,
-            db=REDIS_DB,
+            host=redis_host,
+            port=redis_port,
+            db=redis_db,
             decode_responses=True
         )
     return _redis_client

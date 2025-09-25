@@ -16,7 +16,14 @@ class DataFetcher:
         """Initialize Redis connection"""
         try:
             import redis
-            self.redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+            import os
+            
+            # Use environment variables if available (for Docker), otherwise use localhost
+            redis_host = os.getenv('REDIS_HOST', 'localhost')
+            redis_port = int(os.getenv('REDIS_PORT', '6379'))
+            redis_db = int(os.getenv('REDIS_DB', '0'))
+            
+            self.redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
             # Test connection
             self.redis_client.ping()
         except Exception as e:
