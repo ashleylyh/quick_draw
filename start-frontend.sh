@@ -24,18 +24,18 @@ if [ ! -d "$FRONTEND_DIR" ]; then
 fi
 
 # Check if port is available
-if lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo -e "${RED}❌ Port 8080 is already in use${NC}"
+if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo -e "${RED}❌ Port 3000 is already in use${NC}"
     echo -e "Please stop the existing service or use a different port"
     exit 1
 fi
 
 cd "$FRONTEND_DIR"
 
-echo -e "${GREEN}✅ Starting Frontend Server on http://localhost:8080${NC}"
-echo -e "${BLUE}🎮 Game Interface: http://localhost:8080${NC}"
+echo -e "${GREEN}✅ Starting Frontend Server on http://localhost:3000${NC}"
+echo -e "${BLUE}🎮 Game Interface: http://localhost:3000${NC}"
 echo -e "${BLUE}Press Ctrl+C to stop the server${NC}"
 echo
 
 # Start the HTTP server
-python -m http.server 8080
+python -m http.server   3000

@@ -53,7 +53,7 @@ wait_for_service() {
 # Check if required ports are available
 echo -e "${BLUE}🔍 Checking port availability...${NC}"
 check_port 8000 || { echo -e "${RED}❌ Backend port 8000 is occupied${NC}"; exit 1; }
-check_port 8080 || { echo -e "${RED}❌ Frontend port 8080 is occupied${NC}"; exit 1; }
+check_port 3000 || { echo -e "${RED}❌ Frontend port 3000 is occupied${NC}"; exit 1; }
 check_port 8501 || { echo -e "${RED}❌ Dashboard port 8501 is occupied${NC}"; exit 1; }
 
 echo -e "${GREEN}✅ All ports available${NC}"
@@ -70,7 +70,7 @@ cleanup() {
     
     # Kill processes by port if they're still running
     pkill -f "uvicorn.*app:app" 2>/dev/null || true
-    pkill -f "python.*-m.*http.server.*8080" 2>/dev/null || true
+    pkill -f "python.*-m.*http.server.*3000" 2>/dev/null || true
     pkill -f "streamlit.*run" 2>/dev/null || true
     
     echo -e "${GREEN}✅ All services stopped${NC}"
@@ -89,9 +89,9 @@ python app.py > "../logs/backend.log" 2>&1 &
 BACKEND_PID=$!
 
 # 2. Start Frontend Server
-echo -e "${YELLOW}🌐 Starting Frontend Server (port 8080)...${NC}"
+echo -e "${YELLOW}🌐 Starting Frontend Server (port 3000)...${NC}"
 cd "$PROJECT_ROOT/frontend"
-python -m http.server 8080 > "../logs/frontend.log" 2>&1 &
+python -m http.server 3000 > "../logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 
 # 3. Start Dashboard
@@ -103,12 +103,12 @@ DASHBOARD_PID=$!
 # Wait for services to be ready
 sleep 2
 wait_for_service "http://localhost:8000/docs" "Backend API"
-wait_for_service "http://localhost:8080" "Frontend"
+wait_for_service "http://localhost:3000" "Frontend"
 wait_for_service "http://localhost:8501" "Dashboard"
 
 echo -e "\n${GREEN}🎉 All services are running!${NC}"
 echo -e "${BLUE}📋 Service URLs:${NC}"
-echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:8080${NC}"
+echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:3000${NC}"
 echo -e "  📡 Backend API:    ${GREEN}http://localhost:8000${NC}"
 echo -e "  📊 Dashboard:      ${GREEN}http://localhost:8501${NC}"
 echo -e "  📚 API Docs:       ${GREEN}http://localhost:8000/docs${NC}"

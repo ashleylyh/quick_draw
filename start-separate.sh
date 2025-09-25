@@ -78,7 +78,7 @@ open_in_terminal "start-dashboard.sh" "Dashboard"
 
 echo -e "\n${GREEN}🎉 All services are being started in separate terminals!${NC}"
 echo -e "${BLUE}📋 Service URLs (will be available shortly):${NC}"
-echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:8080${NC}"
+echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:3000${NC}"
 echo -e "  📡 Backend API:    ${GREEN}http://localhost:8000${NC}"
 echo -e "  📊 Dashboard:      ${GREEN}http://localhost:8501${NC}"
 echo -e "  📚 API Docs:       ${GREEN}http://localhost:8000/docs${NC}"

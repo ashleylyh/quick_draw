@@ -41,13 +41,13 @@ kill_process() {
 
 # Stop each service
 kill_process "uvicorn.*app:app" "Backend API"
-kill_process "python.*-m.*http.server.*8080" "Frontend Server"
+kill_process "python.*-m.*http.server.*3000" "Frontend Server"
 kill_process "streamlit.*run" "Dashboard"
 
 # Also try to kill by port (backup method)
-echo -e "${BLUE}🔍 Checking for any remaining processes on ports 8000, 8080, 8501...${NC}"
+echo -e "${BLUE}🔍 Checking for any remaining processes on ports 8000, 3000, 8501...${NC}"
 
-for port in 8000 8080 8501; do
+for port in 8000 3000 8501; do
     local pid=$(lsof -ti :$port 2>/dev/null || true)
     if [ -n "$pid" ]; then
         echo -e "${YELLOW}🔄 Killing process on port $port (PID: $pid)...${NC}"
