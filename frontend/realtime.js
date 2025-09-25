@@ -24,7 +24,7 @@ class RealTimeManager {
         this.disconnectWebSocket(); // Close any existing connection
         
         try {
-            const wsUrl = `ws://localhost:8000/ws/game/${sessionId}`;
+            const wsUrl = `${window.CONFIG.WS_BASE}/ws/game/${sessionId}`;
             this.websocket = new WebSocket(wsUrl);
             
             this.websocket.onopen = (event) => {
@@ -224,7 +224,7 @@ class RealTimeManager {
         this.disconnectSSE(); // Close any existing connection
         
         try {
-            this.eventSource = new EventSource('http://localhost:8000/events');
+            this.eventSource = new EventSource(`${window.CONFIG.BACKEND_URL}/events`);
             
             this.eventSource.onopen = () => {
                 console.log('SSE connection established');

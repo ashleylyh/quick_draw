@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 from matplotlib import font_manager as fm
 import matplotlib.patches as patches
 from utils.plot_utils import get_class_label_map
-from config import NOTOSANSTC_PATH
+from env_config import NOTOSANSTC_PATH
 
 class RadarChart:
     def __init__(self, font_path: Optional[str] = None):

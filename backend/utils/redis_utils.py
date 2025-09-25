@@ -1,6 +1,6 @@
 import redis
 import os
-from config import REDIS_HOST, REDIS_PORT, REDIS_DB
+from env_config import REDIS_HOST, REDIS_PORT, REDIS_DB
 
 _redis_client = None
 

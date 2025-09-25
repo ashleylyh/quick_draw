@@ -2,7 +2,7 @@ import random
 import json
 from typing import Optional, Dict, List
 
-from config import PER_ROUND, NUM_ROUNDS
+from env_config import PER_ROUND, NUM_ROUNDS
 
 # Load classes from JSON
 with open("classes.json", "r") as f:

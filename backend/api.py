@@ -20,7 +20,7 @@ from utils.ml_utils import ml_utils
 from utils.game_logic import game_logic
 from utils.plotting_api import plotting_api
 import pandas as pd
-from config import API_CLIENT, MAX_BG_SAMPLES_PER_CLASS
+from env_config import API_CLIENT, MAX_BG_SAMPLES_PER_CLASS
 
 router = APIRouter()
 

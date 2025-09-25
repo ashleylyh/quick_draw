@@ -8,7 +8,7 @@ const TIME_LIMIT_MS = TIME_LIMIT_SEC * 1000;
 const TOP_SHOW = 3;
 const NUM_ROUNDS = 6;
 const BRUSH_WEIGHT = 10;
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = window.CONFIG.API_BASE;
 
 // ===== State =====
 let cnv;
