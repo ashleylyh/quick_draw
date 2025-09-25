@@ -81,6 +81,25 @@ Download the UMAP model file:
 
 ## 🎯 Running the Application
 
+### 🐳 Docker Deployment (Recommended)
+For the easiest setup, use Docker to run all services:
+
+```bash
+# One-command start (builds and runs everything)
+./docker-start.sh
+
+# Stop all services
+./docker-stop.sh
+```
+
+**Docker Requirements:**
+- Docker and Docker Compose installed
+- Ports 3000, 6379, 8000, 8501 available
+
+See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for detailed Docker instructions.
+
+### 💻 Local Development
+
 ### Option 1: All Services at Once (Recommended)
 ```bash
 # Start all services (backend, frontend, dashboard) in one terminal
@@ -97,7 +116,7 @@ Download the UMAP model file:
 ```bash
 # Start services individually
 ./start-backend.sh    # Backend API (port 8000)
-./start-frontend.sh   # Frontend (port 8080)
+./start-frontend.sh   # Frontend (port 3000)
 ./start-dashboard.sh  # Dashboard (port 8501)
 ```
 ### Option 4: Individual Services Manually
@@ -116,7 +135,7 @@ cd dashboard && streamlit run app.py
 
 ## 🌐 Access URLs
 Once running, access the application at:
-- **🎮 Game Interface**: http://localhost:8080
+- **🎮 Game Interface**: http://localhost:3000
 - **📡 Backend API**: http://localhost:8000
 - **📚 API Documentation**: http://localhost:8000/docs
 - **📊 Analytics Dashboard**: http://localhost:8501
