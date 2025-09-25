@@ -1,0 +1,95 @@
+services:
+  # Redis service
+  redis:
+    image: redis:7-alpine
+    container_name: quickdraw-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quickdraw-network
+
+  # Backend API service
+  backend:
+    build: .
+    container_name: quickdraw-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - FRONTEND_CLIENT=http://localhost:3000
+      - DASHBOARD_CLIENT=http://localhost:8501
+    working_dir: /app/backend
+    command: python app.py
+    volumes:
+      - ./logs:/app/logs
+      - ./backend/uploads:/app/backend/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - quickdraw-network
+
+  # Frontend service
+  frontend:
+    build: .
+    container_name: quickdraw-frontend
+    ports:
+      - "3000:3000"
+    working_dir: /app/frontend
+    command: python -m http.server 3000
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - quickdraw-network
+
+  # Dashboard service
+  dashboard:
+    build: .
+    container_name: quickdraw-dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - QUICKDRAW_BACKEND_URL=http://backend:8000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    working_dir: /app/dashboard
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - quickdraw-network
+
+volumes:
+  redis_data:
+
+networks:
+  quickdraw-network:
+    driver: bridge
