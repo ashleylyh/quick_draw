@@ -18,6 +18,11 @@ echo -e "${BLUE}🐳 Stopping QuickDraw Docker Services...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # Function to check if docker-compose is available
 check_docker_compose() {
     if command -v docker-compose >/dev/null 2>&1; then

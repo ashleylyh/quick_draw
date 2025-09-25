@@ -18,6 +18,11 @@ echo -e "${BLUE}🔨 Building QuickDraw Docker Images...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # Function to check if Docker is running
 check_docker() {
     if ! docker info >/dev/null 2>&1; then

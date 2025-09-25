@@ -2,9 +2,9 @@ services:
   # Redis service
   redis:
     image: redis:7-alpine
-    container_name: quickdraw-redis
+    container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -18,18 +18,18 @@ services:
   # Backend API service
   backend:
     build: .
-    container_name: quickdraw-backend
+    container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-backend
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       redis:
         condition: service_healthy
     environment:
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
-      - FRONTEND_CLIENT=http://localhost:3000
-      - DASHBOARD_CLIENT=http://localhost:8501
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
+      - FRONTEND_CLIENT=${FRONTEND_CLIENT:-http://localhost:3000}
+      - DASHBOARD_CLIENT=${DASHBOARD_CLIENT:-http://localhost:8501}
     working_dir: /app/backend
     command: python app.py
     volumes:
@@ -46,9 +46,9 @@ services:
   # Frontend service
   frontend:
     build: .
-    container_name: quickdraw-frontend
+    container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-frontend
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     working_dir: /app/frontend
     command: python -m http.server 3000
     volumes:
@@ -64,17 +64,17 @@ services:
   # Dashboard service
   dashboard:
     build: .
-    container_name: quickdraw-dashboard
+    container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-dashboard
     ports:
-      - "8501:8501"
+      - "${DASHBOARD_PORT:-8501}:8501"
     depends_on:
       backend:
         condition: service_healthy
     environment:
-      - QUICKDRAW_BACKEND_URL=http://backend:8000
+      - QUICKDRAW_BACKEND_URL=http://backend:${BACKEND_PORT:-8000}
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
     working_dir: /app/dashboard
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
     volumes:

@@ -16,7 +16,20 @@ echo -e "${BLUE}🚀 Starting QuickDraw Application Suite...${NC}"
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Load environment variables from .env file if it exists
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    echo -e "${BLUE}📋 Loading environment variables from .env file...${NC}"
+    set -a  # Automatically export all variables
+    source "$PROJECT_ROOT/.env"
+    set +a  # Turn off automatic export
+fi
+
+# Set default values for environment variables
+FRONTEND_PORT=${FRONTEND_PORT:-3000}
+BACKEND_PORT=${BACKEND_PORT:-8000}  
+DASHBOARD_PORT=${DASHBOARD_PORT:-8501}
 
 # Function to check if a port is available
 check_port() {
@@ -52,9 +65,9 @@ wait_for_service() {
 
 # Check if required ports are available
 echo -e "${BLUE}🔍 Checking port availability...${NC}"
-check_port 8000 || { echo -e "${RED}❌ Backend port 8000 is occupied${NC}"; exit 1; }
-check_port 3000 || { echo -e "${RED}❌ Frontend port 3000 is occupied${NC}"; exit 1; }
-check_port 8501 || { echo -e "${RED}❌ Dashboard port 8501 is occupied${NC}"; exit 1; }
+check_port $BACKEND_PORT || { echo -e "${RED}❌ Backend port $BACKEND_PORT is occupied${NC}"; exit 1; }
+check_port $FRONTEND_PORT || { echo -e "${RED}❌ Frontend port $FRONTEND_PORT is occupied${NC}"; exit 1; }
+check_port $DASHBOARD_PORT || { echo -e "${RED}❌ Dashboard port $DASHBOARD_PORT is occupied${NC}"; exit 1; }
 
 echo -e "${GREEN}✅ All ports available${NC}"
 
@@ -83,35 +96,36 @@ trap cleanup SIGINT SIGTERM
 echo -e "${BLUE}🔧 Starting services...${NC}"
 
 # 1. Start Backend API
-echo -e "${YELLOW}📡 Starting Backend API (port 8000)...${NC}"
+echo -e "${YELLOW}📡 Starting Backend API (port $BACKEND_PORT)...${NC}"
 cd "$PROJECT_ROOT/backend"
+export BACKEND_PORT FRONTEND_PORT DASHBOARD_PORT
 python app.py > "../logs/backend.log" 2>&1 &
 BACKEND_PID=$!
 
 # 2. Start Frontend Server
-echo -e "${YELLOW}🌐 Starting Frontend Server (port 3000)...${NC}"
+echo -e "${YELLOW}🌐 Starting Frontend Server (port $FRONTEND_PORT)...${NC}"
 cd "$PROJECT_ROOT/frontend"
-python -m http.server 3000 > "../logs/frontend.log" 2>&1 &
+python -m http.server $FRONTEND_PORT > "../logs/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 
 # 3. Start Dashboard
-echo -e "${YELLOW}📊 Starting Dashboard (port 8501)...${NC}"
+echo -e "${YELLOW}📊 Starting Dashboard (port $DASHBOARD_PORT)...${NC}"
 cd "$PROJECT_ROOT/dashboard"
-streamlit run app.py --server.port=8501 --server.headless=true > "../logs/dashboard.log" 2>&1 &
+streamlit run app.py --server.port=$DASHBOARD_PORT --server.headless=true > "../logs/dashboard.log" 2>&1 &
 DASHBOARD_PID=$!
 
 # Wait for services to be ready
 sleep 2
-wait_for_service "http://localhost:8000/docs" "Backend API"
-wait_for_service "http://localhost:3000" "Frontend"
-wait_for_service "http://localhost:8501" "Dashboard"
+wait_for_service "http://localhost:$BACKEND_PORT/docs" "Backend API"
+wait_for_service "http://localhost:$FRONTEND_PORT" "Frontend"
+wait_for_service "http://localhost:$DASHBOARD_PORT" "Dashboard"
 
 echo -e "\n${GREEN}🎉 All services are running!${NC}"
 echo -e "${BLUE}📋 Service URLs:${NC}"
-echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:3000${NC}"
-echo -e "  📡 Backend API:    ${GREEN}http://localhost:8000${NC}"
-echo -e "  📊 Dashboard:      ${GREEN}http://localhost:8501${NC}"
-echo -e "  📚 API Docs:       ${GREEN}http://localhost:8000/docs${NC}"
+echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:$FRONTEND_PORT${NC}"
+echo -e "  📡 Backend API:    ${GREEN}http://localhost:$BACKEND_PORT${NC}"
+echo -e "  📊 Dashboard:      ${GREEN}http://localhost:$DASHBOARD_PORT${NC}"
+echo -e "  📚 API Docs:       ${GREEN}http://localhost:$BACKEND_PORT/docs${NC}"
 
 echo -e "\n${YELLOW}💡 Logs are being written to:${NC}"
 echo -e "  • Backend:   logs/backend.log"

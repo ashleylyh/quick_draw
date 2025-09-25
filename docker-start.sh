@@ -18,6 +18,15 @@ echo -e "${BLUE}🐳 Starting QuickDraw Application with Docker...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    echo -e "${BLUE}📋 Loading environment variables from .env file...${NC}"
+    export $(grep -v '^#' .env | xargs)
+    echo -e "${GREEN}✅ Environment variables loaded${NC}"
+else
+    echo -e "${YELLOW}⚠️  No .env file found, using default values${NC}"
+fi
+
 # Function to check if Docker is running
 check_docker() {
     if ! docker info >/dev/null 2>&1; then
@@ -69,7 +78,7 @@ echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
 # Wait for backend to be ready
 echo -e "${BLUE}📡 Checking backend service...${NC}"
 for i in {1..30}; do
-    if curl -s http://localhost:8000/docs >/dev/null 2>&1; then
+    if curl -s http://localhost:${BACKEND_PORT:-8000}/docs >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Backend API is ready!${NC}"
         break
     fi
@@ -84,7 +93,7 @@ done
 # Wait for frontend to be ready
 echo -e "${BLUE}🌐 Checking frontend service...${NC}"
 for i in {1..15}; do
-    if curl -s http://localhost:3000 >/dev/null 2>&1; then
+    if curl -s http://localhost:${FRONTEND_PORT:-3000} >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Frontend is ready!${NC}"
         break
     fi
@@ -99,7 +108,7 @@ done
 # Wait for dashboard to be ready
 echo -e "${BLUE}📊 Checking dashboard service...${NC}"
 for i in {1..30}; do
-    if curl -s http://localhost:8501/_stcore/health >/dev/null 2>&1; then
+    if curl -s http://localhost:${DASHBOARD_PORT:-8501}/_stcore/health >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Dashboard is ready!${NC}"
         break
     fi
@@ -113,11 +122,11 @@ done
 
 echo -e "\n${GREEN}🎉 All services are running successfully!${NC}"
 echo -e "\n${BLUE}📋 Service URLs:${NC}"
-echo -e "🎮 Game Interface:     ${GREEN}http://localhost:3000${NC}"
-echo -e "📡 Backend API:        ${GREEN}http://localhost:8000${NC}"
-echo -e "📚 API Documentation:  ${GREEN}http://localhost:8000/docs${NC}"
-echo -e "📊 Analytics Dashboard: ${GREEN}http://localhost:8501${NC}"
-echo -e "🔧 Redis Database:     ${GREEN}localhost:6379${NC}"
+echo -e "🎮 Game Interface:     ${GREEN}http://localhost:${FRONTEND_PORT:-3000}${NC}"
+echo -e "📡 Backend API:        ${GREEN}http://localhost:${BACKEND_PORT:-8000}${NC}"
+echo -e "📚 API Documentation:  ${GREEN}http://localhost:${BACKEND_PORT:-8000}/docs${NC}"
+echo -e "📊 Analytics Dashboard: ${GREEN}http://localhost:${DASHBOARD_PORT:-8501}${NC}"
+echo -e "🔧 Redis Database:     ${GREEN}localhost:${REDIS_PORT:-6379}${NC}"
 
 echo -e "\n${YELLOW}📝 To view logs:${NC}"
 echo -e "All services: ${BLUE}$COMPOSE_CMD logs -f${NC}"

@@ -14,8 +14,9 @@ NC='\033[0m'
 
 echo -e "${BLUE}🚀 Starting QuickDraw Services in Separate Terminals...${NC}"
 
-# Get script directory
+# Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Function to detect terminal emulator and open new tabs/windows
 open_in_terminal() {
