@@ -4,9 +4,10 @@ Overview Tab - Dashboard overview with metrics and recent activity
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
 from typing import List, Dict, Any
 from components.base_tab import BaseTab
+import pytz
+from dateutil import parser
 
 
 class OverviewTab(BaseTab):
@@ -116,6 +117,7 @@ class OverviewTab(BaseTab):
         """Render cross-difficulty comparison section"""
         # Import data fetcher here to avoid circular imports
         from utils.data_fetcher import DataFetcher
+
         data_fetcher = DataFetcher()
         rankings = data_fetcher.get_ranking_data(self.data)
         
@@ -218,9 +220,13 @@ class OverviewTab(BaseTab):
                 timestamp = session.get('timestamp', '')
                 if timestamp:
                     try:
-                        dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                        dt = parser.isoparse(timestamp)
+                        taipei_tz = pytz.timezone('Asia/Taipei')
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=pytz.UTC)
+                        dt = dt.astimezone(taipei_tz)
                         time_str = dt.strftime("%m/%d %H:%M")
-                    except:
+                    except Exception:
                         recent_text = self.get_text('recent') if self.language == 'en' else '最近'
                         time_str = recent_text
                 else:

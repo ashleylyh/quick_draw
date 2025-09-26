@@ -14,8 +14,9 @@ NC='\033[0m'
 
 echo -e "${BLUE}🚀 Starting QuickDraw Services in Separate Terminals...${NC}"
 
-# Get script directory
+# Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Function to detect terminal emulator and open new tabs/windows
 open_in_terminal() {
@@ -78,7 +79,7 @@ open_in_terminal "start-dashboard.sh" "Dashboard"
 
 echo -e "\n${GREEN}🎉 All services are being started in separate terminals!${NC}"
 echo -e "${BLUE}📋 Service URLs (will be available shortly):${NC}"
-echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:8080${NC}"
+echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:3000${NC}"
 echo -e "  📡 Backend API:    ${GREEN}http://localhost:8000${NC}"
 echo -e "  📊 Dashboard:      ${GREEN}http://localhost:8501${NC}"
 echo -e "  📚 API Docs:       ${GREEN}http://localhost:8000/docs${NC}"

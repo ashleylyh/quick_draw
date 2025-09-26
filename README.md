@@ -81,24 +81,43 @@ Download the UMAP model file:
 
 ## 🎯 Running the Application
 
+### 🐳 Docker Deployment (Recommended)
+For the easiest setup, use Docker to run all services:
+
+```bash
+# One-command start (builds and runs everything)
+./docker-start.sh
+
+# Stop all services
+./docker-stop.sh
+```
+
+**Docker Requirements:**
+- Docker and Docker Compose installed
+- Ports 3000, 6379, 8000, 8501 available
+
+See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for detailed Docker instructions.
+
+### 💻 Local Development
+
 ### Option 1: All Services at Once (Recommended)
 ```bash
 # Start all services (backend, frontend, dashboard) in one terminal
-./start-all.sh
+scripts/start-all.sh
 ```
 
 ### Option 2: Separate Terminals for Each Service
 ```bash
 # Opens each service in its own terminal tab/window
-./start-separate.sh
+scripts/start-separate.sh
 ```
 
 ### Option 3: Individual Services
 ```bash
 # Start services individually
-./start-backend.sh    # Backend API (port 8000)
-./start-frontend.sh   # Frontend (port 8080)
-./start-dashboard.sh  # Dashboard (port 8501)
+scripts/start-backend.sh    # Backend API (port 8000)
+scripts/start-frontend.sh   # Frontend (port 3000)
+scripts/start-dashboard.sh  # Dashboard (port 8501)
 ```
 ### Option 4: Individual Services Manually
 ```bash
@@ -111,12 +130,31 @@ cd dashboard && streamlit run app.py
 
 ### Stop All Services
 ```bash
-./stop-all.sh
+scripts/stop-all.sh
 ```
+
+## ⚙️ Environment Configuration
+
+The application uses environment variables for configuration. Copy `.env.example` to `.env` and customize as needed:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit the configuration
+nano .env
+```
+
+Key environment variables:
+- `FRONTEND_PORT` - Frontend server port (default: 3000)
+- `BACKEND_PORT` - Backend API port (default: 8000)
+- `DASHBOARD_PORT` - Dashboard port (default: 8501)
+- `REDIS_HOST` - Redis host (default: localhost)
+- `REDIS_PORT` - Redis port (default: 6379)
 
 ## 🌐 Access URLs
 Once running, access the application at:
-- **🎮 Game Interface**: http://localhost:8080
+- **🎮 Game Interface**: http://localhost:3000
 - **📡 Backend API**: http://localhost:8000
 - **📚 API Documentation**: http://localhost:8000/docs
 - **📊 Analytics Dashboard**: http://localhost:8501
@@ -133,11 +171,11 @@ lsof -i :8000
 sudo kill -9 $(sudo lsof -t -i:8000)
 
 # Or use the stop script
-./stop-all.sh
+scripts/stop-all.sh
 ```
 
 ### Logs and Debugging
-When using `start-all.sh`, logs are saved to:
+When using `scripts/start-all.sh`, logs are saved to:
 - `logs/backend.log` - Backend API logs
 - `logs/frontend.log` - Frontend server logs
 - `logs/dashboard.log` - Dashboard logs
@@ -147,7 +185,13 @@ When using `start-all.sh`, logs are saved to:
 
 ```
 quickdraw/
-├── 🚀 Startup Scripts
+├── 🚀 Docker Scripts
+│   ├── docker-start.sh       # Start all services with Docker
+│   ├── docker-stop.sh        # Stop Docker services
+│   ├── docker-build.sh       # Build Docker images
+│   └── docker-compose.yml    # Docker Compose configuration
+│
+├── 📂 scripts/              # Development Scripts
 │   ├── start-all.sh          # Start all services together
 │   ├── start-separate.sh     # Start each service in separate terminals
 │   ├── start-backend.sh      # Backend only
@@ -188,10 +232,13 @@ quickdraw/
 │   ├── controllers/         # Business logic
 │   └── utils/               # Data processing
 │
-├── 📋 Configuration
+├── 📋 Configuration & Environment
 │   ├── pyproject.toml       # Project dependencies
 │   ├── config.py            # Shared configuration
-│   └── uv.lock              # Dependency lock file
+│   ├── uv.lock              # Dependency lock file
+│   ├── .env.example         # Environment variables template
+│   ├── .env                 # Environment configuration (local)
+│   └── .dockerignore        # Docker ignore patterns
 │
 └── 📝 Documentation
     ├── README.md            # This file

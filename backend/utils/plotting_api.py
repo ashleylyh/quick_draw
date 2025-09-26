@@ -7,7 +7,7 @@ import pandas as pd
 from utils.redis_utils import get_redis
 from utils.umap_auto import umap
 from utils.radar_chart_auto import radar_chart
-from config import FILE_EMB_5, FILE_UMAP, FILE_UMAP_REDUCER, NOTOSANSTC_PATH
+from env_config import FILE_EMB_5, FILE_UMAP, FILE_UMAP_REDUCER, NOTOSANSTC_PATH
 
 class PlottingAPI:
     """Enhanced plotting API with Redis storage support."""

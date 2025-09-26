@@ -5,7 +5,7 @@ import keras
 import tensorflow as tf
 from PIL import Image
 import io
-from config import MODEL_PATH, CLASSES_PATH
+from env_config import MODEL_PATH, CLASSES_PATH
 
 class MLUtils:
     def __init__(self, model_path, classes_path):

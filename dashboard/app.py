@@ -1,6 +1,6 @@
 import streamlit as st
 from controllers.dashboard_controller import DashboardController
-
+import os
 # Page configuration
 st.set_page_config(
     page_title="QuickDraw Dashboard",

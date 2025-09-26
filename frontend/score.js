@@ -2,7 +2,7 @@ import {toZh, formatTimestamp } from './utils.js';
 
 async function fetchSessionResults(sessionId) {
     try {
-        const response = await fetch(`http://localhost:8000/api/session/${sessionId}`);
+        const response = await fetch(`${window.CONFIG.API_BASE}/session/${sessionId}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
     } catch (error) {
@@ -12,7 +12,7 @@ async function fetchSessionResults(sessionId) {
 
 async function fetchPlayerDrawings(sessionId) {
     try {
-        const response = await fetch(`http://localhost:8000/api/drawing/${sessionId}`);
+        const response = await fetch(`${window.CONFIG.API_BASE}/drawing/${sessionId}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
     } catch (error) {
@@ -23,7 +23,7 @@ async function fetchPlayerDrawings(sessionId) {
 async function fetchUMAPVisualization(sessionId) {
     try {
         console.log(`Fetching UMAP visualization for session: ${sessionId}`);
-        const response = await fetch(`http://localhost:8000/api/umap/${sessionId}`);
+        const response = await fetch(`${window.CONFIG.API_BASE}/umap/${sessionId}`);
         
         if (!response.ok) {
             const errorText = await response.text();
@@ -43,7 +43,7 @@ async function fetchUMAPVisualization(sessionId) {
 async function fetchRadarChart(sessionId) {
     try {
         console.log(`Fetching radar chart for session: ${sessionId}`);
-        const response = await fetch(`http://localhost:8000/api/radar/${sessionId}`);
+        const response = await fetch(`${window.CONFIG.API_BASE}/radar/${sessionId}`);
         
         if (!response.ok) {
             const errorText = await response.text();
@@ -63,7 +63,7 @@ async function fetchRadarChart(sessionId) {
 async function fetchBothPlots(sessionId) {
     try {
         console.log(`Fetching both plots for session: ${sessionId}`);
-        const response = await fetch(`http://localhost:8000/api/plots/${sessionId}`);
+        const response = await fetch(`${window.CONFIG.API_BASE}/plots/${sessionId}`);
         
         if (!response.ok) {
             const errorText = await response.text();
@@ -567,7 +567,7 @@ async function generateScreenshotbase64(sessionData) {
 // QR Code checking and generation functions
 async function checkExistingQRCode(sessionId) {
     try {
-        const response = await fetch(`http://localhost:8000/api/qr-code/${sessionId}`);
+        const response = await fetch(`${window.CONFIG.API_BASE}/qr-code/${sessionId}`);
         if (!response.ok) {
             if (response.status === 404) {
                 return { exists: false };
@@ -601,7 +601,7 @@ async function generateQRCodeOnBackend(sessionData, shareableUrl) {
             shareable_url: shareableUrl
         };
 
-        const response = await fetch('http://localhost:8000/api/generate-qr-code', {
+        const response = await fetch(`${window.CONFIG.API_BASE}/generate-qr-code`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData)
@@ -632,7 +632,7 @@ async function uploadScreenshot(base64String, sessionData) {
         player_name: sessionData.player_name
     };
 
-    const response = await fetch('http://localhost:8000/api/upload-screenshot', {
+    const response = await fetch(`${window.CONFIG.API_BASE}/upload-screenshot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData)

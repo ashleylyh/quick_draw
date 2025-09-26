@@ -14,8 +14,10 @@ class DashboardController:
     """Main controller for the QuickDraw Dashboard"""
     
     def __init__(self):
-        self.data_fetcher = DataFetcher()
-        self.backend_url = "http://localhost:8000"  # Default backend URL
+        # Use environment variable for backend URL (for Docker compatibility)
+        import os
+        self.backend_url = os.getenv("QUICKDRAW_BACKEND_URL", "http://localhost:8000")
+        self.data_fetcher = DataFetcher(backend_url=self.backend_url)
         
         # Initialize session state for language if not exists
         if 'language' not in st.session_state:

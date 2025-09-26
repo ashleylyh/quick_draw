@@ -15,7 +15,7 @@ from realtime import (
     sse_endpoint,
     start_event_listener
 )
-from config import FRONTEND_CLIENT, DASHBOARD_CLIENT
+from env_config import FRONTEND_CLIENT, DASHBOARD_CLIENT
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
