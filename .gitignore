@@ -21,3 +21,6 @@ wheels/
 
 
 .env
+
+# Auto-generated frontend environment file
+frontend/env-inject.js

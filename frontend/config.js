@@ -9,13 +9,22 @@ const getBackendUrl = () => {
         return window.BACKEND_URL;
     }
     
-    // Try to get from current host (for production deployment)
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        return `${window.location.protocol}//${window.location.hostname}:8000`;
+    // Try to get from window environment variables (set by server)
+    if (window.BACKEND_CLIENT) {
+        return window.BACKEND_CLIENT;
     }
     
-    // Default for local development
-    return 'http://localhost:8000';
+    // Try to get from current host (for production deployment)
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        // Use environment variable for backend port, fallback to 8000
+        const backendPort = window.BACKEND_PORT || '8000';
+        return `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
+    }
+    
+    // Default for local development - use environment variable for backend port
+    const backendPort = window.BACKEND_PORT || '8000';
+    const backendHost = window.BACKEND_HOST || 'localhost';
+    return `http://${backendHost}:${backendPort}`;
 };
 
 // Configuration object

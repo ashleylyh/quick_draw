@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 import asyncio
 import logging
+import os
 
 # Import routers and realtime modules
 from api import router as game_router
@@ -60,12 +61,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",     # Frontend development
-        "http://localhost:8501",     # Dashboard development  
-        "http://127.0.0.1:3000",     # Frontend alternative
-        "http://127.0.0.1:8501",     # Dashboard alternative
-        f"http://{FRONTEND_CLIENT}",  # Production domain
-        f"http://{DASHBOARD_CLIENT}"  # Production domain
+        FRONTEND_CLIENT,   # Frontend from env config (e.g., http://localhost:3030)
+        DASHBOARD_CLIENT,  # Dashboard from env config (e.g., http://localhost:8501)
+        f"http://localhost:{os.getenv('FRONTEND_PORT', '3030')}",  # Frontend localhost
+        f"http://localhost:{os.getenv('DASHBOARD_PORT', '8501')}", # Dashboard localhost
+        f"http://127.0.0.1:{os.getenv('FRONTEND_PORT', '3030')}",  # Frontend alternative IP
+        f"http://127.0.0.1:{os.getenv('DASHBOARD_PORT', '8501')}", # Dashboard alternative IP
         # Add your production domains here
     ],
     allow_credentials=True,

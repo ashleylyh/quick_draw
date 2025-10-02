@@ -24,12 +24,22 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_DB=${REDIS_DB:-0}
-      - FRONTEND_CLIENT=${FRONTEND_CLIENT:-http://localhost:3000}
-      - DASHBOARD_CLIENT=${DASHBOARD_CLIENT:-http://localhost:8501}
+      - FRONTEND_CLIENT=${FRONTEND_CLIENT:-http://localhost:${FRONTEND_PORT:-3000}}
+      - DASHBOARD_CLIENT=${DASHBOARD_CLIENT:-http://localhost:${DASHBOARD_PORT:-8501}}
+      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
+      - DASHBOARD_PORT=${DASHBOARD_PORT:-8501}
+      - BACKEND_PORT=${BACKEND_PORT:-8000}
     working_dir: /app/backend
     command: python app.py
     volumes:
@@ -48,13 +58,19 @@ services:
     build: .
     container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
-    working_dir: /app/frontend
-    command: python -m http.server 3000
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
+    environment:
+      - BACKEND_PORT=${BACKEND_PORT:-8000}
+      - BACKEND_HOST=${BACKEND_HOST:-backend}
+      - FRONTEND_PORT=${FRONTEND_PORT:-3000}
+      - FRONTEND_HOST=${FRONTEND_HOST:-localhost}
+      - DASHBOARD_PORT=${DASHBOARD_PORT:-8501}
+      - DASHBOARD_HOST=${DASHBOARD_HOST:-localhost}
+    command: /app/scripts/docker-frontend-start.sh
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-3000}"]
       interval: 30s
       timeout: 10s
       retries: 5

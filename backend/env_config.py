@@ -15,7 +15,7 @@ CLASSES_PATH = os.getenv('CLASSES_PATH', './classes.json')
 
 # Network Configuration
 API_CLIENT = os.getenv('API_CLIENT', 'localhost:8000')
-FRONTEND_CLIENT = os.getenv('FRONTEND_CLIENT', 'http://localhost:3000')
+FRONTEND_CLIENT = os.getenv('FRONTEND_CLIENT', 'http://localhost:3030')
 DASHBOARD_CLIENT = os.getenv('DASHBOARD_CLIENT', 'http://localhost:8501')
 
 # Redis Configuration

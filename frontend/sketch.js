@@ -16,7 +16,7 @@ let sessionId;
 let playerName = '';
 let playerGender = '';
 let playerAge = '';
-let difficulty = 'simple';
+let difficulty = 'easy';  // Fixed: changed from 'simple' to 'easy' to match form values
 let roundIdx = 0;
 let currentPrompt = '';
 let activeRounds = [];

@@ -41,6 +41,9 @@ if lsof -Pi :$FRONTEND_PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
     exit 1
 fi
 
+# Inject environment variables into frontend
+"$SCRIPT_DIR/inject-env.sh"
+
 cd "$FRONTEND_DIR"
 
 echo -e "${GREEN}✅ Starting Frontend Server on http://localhost:$FRONTEND_PORT${NC}"
@@ -49,4 +52,4 @@ echo -e "${BLUE}Press Ctrl+C to stop the server${NC}"
 echo
 
 # Start the HTTP server
-python -m http.server   3000
+python -m http.server $FRONTEND_PORT

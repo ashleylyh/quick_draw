@@ -18,6 +18,21 @@ echo -e "${BLUE}🚀 Starting QuickDraw Services in Separate Terminals...${NC}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Load environment variables from .env file if it exists
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a  # Automatically export all variables
+    source "$PROJECT_ROOT/.env"
+    set +a  # Turn off automatic export
+fi
+
+# Set default values for environment variables
+FRONTEND_PORT=${FRONTEND_PORT:-3030}
+BACKEND_PORT=${BACKEND_PORT:-8000}
+DASHBOARD_PORT=${DASHBOARD_PORT:-8501}
+FRONTEND_HOST=${FRONTEND_HOST:-localhost}
+BACKEND_HOST=${BACKEND_HOST:-localhost}
+DASHBOARD_HOST=${DASHBOARD_HOST:-localhost}
+
 # Function to detect terminal emulator and open new tabs/windows
 open_in_terminal() {
     local script_name=$1
@@ -79,10 +94,10 @@ open_in_terminal "start-dashboard.sh" "Dashboard"
 
 echo -e "\n${GREEN}🎉 All services are being started in separate terminals!${NC}"
 echo -e "${BLUE}📋 Service URLs (will be available shortly):${NC}"
-echo -e "  🎮 Game Frontend:  ${GREEN}http://localhost:3000${NC}"
-echo -e "  📡 Backend API:    ${GREEN}http://localhost:8000${NC}"
-echo -e "  📊 Dashboard:      ${GREEN}http://localhost:8501${NC}"
-echo -e "  📚 API Docs:       ${GREEN}http://localhost:8000/docs${NC}"
+echo -e "  🎮 Game Frontend:  ${GREEN}http://${FRONTEND_HOST}:${FRONTEND_PORT}${NC}"
+echo -e "  📡 Backend API:    ${GREEN}http://${BACKEND_HOST}:${BACKEND_PORT}${NC}"
+echo -e "  📊 Dashboard:      ${GREEN}http://${DASHBOARD_HOST}:${DASHBOARD_PORT}${NC}"
+echo -e "  📚 API Docs:       ${GREEN}http://${BACKEND_HOST}:${BACKEND_PORT}/docs${NC}"
 
 echo -e "\n${YELLOW}💡 Each service is running in its own terminal tab/window${NC}"
 echo -e "${YELLOW}   Close the respective terminal to stop each service${NC}"

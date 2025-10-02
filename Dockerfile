@@ -33,6 +33,9 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p logs uploads/screenshots
 
+# Make scripts executable
+RUN chmod +x scripts/*.sh
+
 # Expose all required ports
 EXPOSE 3000 8000 8501
 

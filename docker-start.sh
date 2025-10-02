@@ -38,10 +38,10 @@ check_docker() {
 
 # Function to check if docker-compose is available
 check_docker_compose() {
-    if command -v docker-compose >/dev/null 2>&1; then
-        COMPOSE_CMD="docker-compose"
-    elif docker compose version >/dev/null 2>&1; then
+    if docker compose version >/dev/null 2>&1; then
         COMPOSE_CMD="docker compose"
+    elif command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD="docker-compose"
     else
         echo -e "${RED}❌ Neither docker-compose nor 'docker compose' is available${NC}"
         exit 1
