@@ -98,6 +98,8 @@ For the easiest setup, use Docker to run all services:
 
 See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for detailed Docker instructions.
 
+if you change any setting in .env file, please remember to run `./scripts/generate-streamlit-config.sh` to synv the environment setting with the dashboard.
+
 ### 💻 Local Development
 
 ### Option 1: All Services at Once (Recommended)

@@ -31,6 +31,16 @@ FILE_UMAP_REDUCER = os.getenv('FILE_UMAP_REDUCER', './feature/background_Umap_to
 # ML Configuration
 MAX_BG_SAMPLES_PER_CLASS = int(os.getenv('MAX_BG_SAMPLES_PER_CLASS', '500'))
 
+# CORS Configuration
+CORS_ENABLED = os.getenv('CORS_ENABLED', 'true').lower() == 'true'
+# CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', f'{FRONTEND_CLIENT},{DASHBOARD_CLIENT}').split(',') if origin.strip()]
+CORS_ALLOWED_ORIGINS = "http://140.109.74.39:3030/"
+CORS_ALLOWED_METHODS = [method.strip() for method in os.getenv('CORS_ALLOWED_METHODS', 'GET,POST,PUT,DELETE,OPTIONS').split(',') if method.strip()]
+CORS_ALLOWED_HEADERS = os.getenv('CORS_ALLOWED_HEADERS', '*')
+CORS_EXPOSED_HEADERS = os.getenv('CORS_EXPOSED_HEADERS', '*')
+CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'true').lower() == 'true'
+CORS_MAX_AGE = int(os.getenv('CORS_MAX_AGE', '3600'))
+
 # Font Configuration
 NOTOSANSTC_PATH_FRONT = os.getenv('NOTOSANSTC_PATH_FRONT', './fonts/NotoSansTC.ttf')
 NOTOSANSTC_PATH = os.getenv('NOTOSANSTC_PATH', '../frontend/fonts/NotoSansTC.ttf')

@@ -16,7 +16,17 @@ from realtime import (
     sse_endpoint,
     start_event_listener
 )
-from env_config import FRONTEND_CLIENT, DASHBOARD_CLIENT
+from env_config import (
+    FRONTEND_CLIENT, 
+    DASHBOARD_CLIENT,
+    CORS_ENABLED,
+    CORS_ALLOWED_ORIGINS,
+    CORS_ALLOWED_METHODS,
+    CORS_ALLOWED_HEADERS,
+    CORS_EXPOSED_HEADERS,
+    CORS_ALLOW_CREDENTIALS,
+    CORS_MAX_AGE
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -58,22 +68,24 @@ app = FastAPI(
 )
 
 # Enhanced CORS configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        FRONTEND_CLIENT,   # Frontend from env config (e.g., http://localhost:3030)
-        DASHBOARD_CLIENT,  # Dashboard from env config (e.g., http://localhost:8501)
-        f"http://localhost:{os.getenv('FRONTEND_PORT', '3030')}",  # Frontend localhost
-        f"http://localhost:{os.getenv('DASHBOARD_PORT', '8501')}", # Dashboard localhost
-        f"http://127.0.0.1:{os.getenv('FRONTEND_PORT', '3030')}",  # Frontend alternative IP
-        f"http://127.0.0.1:{os.getenv('DASHBOARD_PORT', '8501')}", # Dashboard alternative IP
-        # Add your production domains here
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
+if CORS_ENABLED:
+    logger.info(f"CORS enabled with origins: {CORS_ALLOWED_ORIGINS}")
+    
+    # Handle wildcard headers
+    allowed_headers = CORS_ALLOWED_HEADERS.split(',') if CORS_ALLOWED_HEADERS != '*' else ['*']
+    exposed_headers = CORS_EXPOSED_HEADERS.split(',') if CORS_EXPOSED_HEADERS != '*' else ['*']
+    
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ALLOWED_ORIGINS,
+        allow_credentials=CORS_ALLOW_CREDENTIALS,
+        allow_methods=CORS_ALLOWED_METHODS,
+        allow_headers=allowed_headers,
+        expose_headers=exposed_headers,
+        max_age=CORS_MAX_AGE
+    )
+else:
+    logger.info("CORS is disabled")
 
 # Include API routers
 app.include_router(game_router, prefix="", tags=["Game API"])
