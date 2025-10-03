@@ -145,6 +145,7 @@ Key environment variables in docker-compose.yml:
 - `REDIS_PORT=6379` - Redis port
 - `FRONTEND_CLIENT=http://localhost:3000` - Frontend URL
 - `DASHBOARD_CLIENT=http://localhost:8501` - Dashboard URL
+- `PUBLIC_FRONTEND_URL=` - Optional HTTPS URL (ngrok) automatically whitelisted for CORS when set
 
 ### Dashboard Service  
 - `QUICKDRAW_BACKEND_URL=http://backend:8000` - Backend API URL (internal)
