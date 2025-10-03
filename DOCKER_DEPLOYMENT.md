@@ -47,6 +47,13 @@ docker-compose logs -f
 - Starts all services with health checks
 - Displays service URLs
 - Follows logs (Ctrl+C to stop log viewing only)
+- When `ENABLE_NGROK_FRONTEND=true` in `.env`, automatically launches the optional `ngrok-frontend` service and prints the public URL for sharing the game interface
+
+### `scripts/show-ngrok-urls.sh` - Inspect ngrok tunnel
+- Queries the ngrok admin API (default `http://127.0.0.1:4040/api/tunnels`)
+- Prints any active HTTPS tunnels and the selected frontend URL
+- With `--update-env`, persists the discovered URL into `.env` (`PUBLIC_FRONTEND_URL`)
+- With `--reload-backend`, recreates the backend container so the updated origin is allowed by CORS
 
 ### `docker-stop.sh` - Clean Shutdown
 - Stops all running containers
@@ -64,12 +71,13 @@ docker-compose logs -f
 
 ## 🌐 Service URLs
 
-Once running, access your application at:
-- **🎮 Game Interface**: http://localhost:3000
+Once running, access your application at (ports can be customized in `.env`):
+- **🎮 Game Interface**: http://localhost:3030
 - **📡 Backend API**: http://localhost:8000  
 - **📚 API Documentation**: http://localhost:8000/docs
 - **📊 Analytics Dashboard**: http://localhost:8501
 - **🔧 Redis Database**: localhost:6379
+- **🌍 Public Frontend (optional)**: Set `ENABLE_NGROK_FRONTEND=true` and run `docker-start.sh` to generate a single ngrok tunnel. The discovered HTTPS URL is stored in `.env` as `PUBLIC_FRONTEND_URL` and shown after startup.
 
 ## 📊 Container Architecture
 
@@ -145,6 +153,8 @@ Key environment variables in docker-compose.yml:
 - `REDIS_PORT=6379` - Redis port
 - `FRONTEND_CLIENT=http://localhost:3000` - Frontend URL
 - `DASHBOARD_CLIENT=http://localhost:8501` - Dashboard URL
+- `PUBLIC_FRONTEND_URL=` - Optional HTTPS URL (ngrok) automatically whitelisted for CORS when set
+- `PUBLIC_BACKEND_URL=` - Optional HTTPS URL if the backend is exposed through a separate tunnel
 
 ### Dashboard Service  
 - `QUICKDRAW_BACKEND_URL=http://backend:8000` - Backend API URL (internal)
@@ -255,6 +265,10 @@ services:
 - Services communicate via internal Docker network
 - Only necessary ports are exposed to host
 - No secrets are hardcoded in images
+- When exposing the frontend via ngrok:
+  - Restrict backend CORS to trusted origins by keeping `CORS_ALLOWED_ORIGINS` scoped
+  - `PUBLIC_FRONTEND_URL` is automatically appended to the allowed origins set
+  - The backend/Dashboard remain on the private Docker network and are not tunneled
 
 For production deployment, consider:
 - Adding Redis authentication

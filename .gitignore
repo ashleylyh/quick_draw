@@ -24,3 +24,7 @@ wheels/
 
 # Auto-generated frontend environment file
 frontend/env-inject.js
+
+# Source map files (can be regenerated or are optional)
+*.css.map
+*.js.map

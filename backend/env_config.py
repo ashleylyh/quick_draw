@@ -17,6 +17,7 @@ CLASSES_PATH = os.getenv('CLASSES_PATH', './classes.json')
 API_CLIENT = os.getenv('API_CLIENT', 'localhost:8000')
 FRONTEND_CLIENT = os.getenv('FRONTEND_CLIENT', 'http://localhost:3030')
 DASHBOARD_CLIENT = os.getenv('DASHBOARD_CLIENT', 'http://localhost:8501')
+PUBLIC_FRONTEND_URL = os.getenv('PUBLIC_FRONTEND_URL', '').strip()
 
 # Redis Configuration
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -32,10 +33,44 @@ FILE_UMAP_REDUCER = os.getenv('FILE_UMAP_REDUCER', './feature/background_Umap_to
 MAX_BG_SAMPLES_PER_CLASS = int(os.getenv('MAX_BG_SAMPLES_PER_CLASS', '500'))
 
 # CORS Configuration
+def _parse_csv_env(env_key: str, default: str = ""):
+	"""Split a comma-separated environment variable into a list."""
+	raw_value = os.getenv(env_key, default)
+	if raw_value is None:
+		raw_value = default
+	raw_value = raw_value.strip()
+	if not raw_value:
+		return []
+	if raw_value == '*':
+		return ['*']
+	return [item.strip() for item in raw_value.split(',') if item.strip()]
+
 CORS_ENABLED = os.getenv('CORS_ENABLED', 'true').lower() == 'true'
-# CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', f'{FRONTEND_CLIENT},{DASHBOARD_CLIENT}').split(',') if origin.strip()]
-CORS_ALLOWED_ORIGINS = "http://140.109.74.39:3030/"
-CORS_ALLOWED_METHODS = [method.strip() for method in os.getenv('CORS_ALLOWED_METHODS', 'GET,POST,PUT,DELETE,OPTIONS').split(',') if method.strip()]
+
+default_cors_origins = []
+if FRONTEND_CLIENT:
+	default_cors_origins.append(FRONTEND_CLIENT)
+if DASHBOARD_CLIENT:
+	default_cors_origins.append(DASHBOARD_CLIENT)
+if PUBLIC_FRONTEND_URL:
+	default_cors_origins.append(PUBLIC_FRONTEND_URL)
+
+_cors_default = ','.join(default_cors_origins)
+CORS_ALLOWED_ORIGINS = _parse_csv_env('CORS_ALLOWED_ORIGINS', _cors_default)
+if not CORS_ALLOWED_ORIGINS and default_cors_origins:
+	CORS_ALLOWED_ORIGINS = default_cors_origins
+
+CORS_ALLOWED_ORIGIN_REGEX = os.getenv('CORS_ALLOWED_ORIGIN_REGEX', '').strip() or None
+
+if (
+	PUBLIC_FRONTEND_URL
+	and CORS_ALLOWED_ORIGINS
+	and CORS_ALLOWED_ORIGINS != ['*']
+	and PUBLIC_FRONTEND_URL not in CORS_ALLOWED_ORIGINS
+):
+	CORS_ALLOWED_ORIGINS.append(PUBLIC_FRONTEND_URL)
+
+CORS_ALLOWED_METHODS = _parse_csv_env('CORS_ALLOWED_METHODS', 'GET,POST,PUT,DELETE,OPTIONS')
 CORS_ALLOWED_HEADERS = os.getenv('CORS_ALLOWED_HEADERS', '*')
 CORS_EXPOSED_HEADERS = os.getenv('CORS_EXPOSED_HEADERS', '*')
 CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'true').lower() == 'true'

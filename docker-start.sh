@@ -64,13 +64,24 @@ trap cleanup SIGINT SIGTERM
 check_docker
 check_docker_compose
 
+PROFILE_FLAG=""
+if [ "${ENABLE_NGROK_FRONTEND:-false}" = "true" ]; then
+    if [ -z "${NGROK_AUTHTOKEN:-}" ]; then
+        echo -e "${RED}❌ ENABLE_NGROK_FRONTEND is true but NGROK_AUTHTOKEN is not set.${NC}"
+        echo -e "${YELLOW}➡️  Please provide your ngrok auth token in the .env file before continuing.${NC}"
+        exit 1
+    fi
+    PROFILE_FLAG="--profile sharing"
+    echo -e "${BLUE}🌐 ngrok frontend tunnelling enabled (profile: sharing)${NC}"
+fi
+
 # Build the Docker images
 echo -e "${YELLOW}🔨 Building Docker images...${NC}"
 $COMPOSE_CMD build
 
 # Start all services
 echo -e "${YELLOW}🚀 Starting all services...${NC}"
-$COMPOSE_CMD up -d
+$COMPOSE_CMD $PROFILE_FLAG up -d
 
 # Wait for services to be ready
 echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
@@ -127,6 +138,16 @@ echo -e "📡 Backend API:        ${GREEN}http://localhost:${BACKEND_PORT:-8000}
 echo -e "📚 API Documentation:  ${GREEN}http://localhost:${BACKEND_PORT:-8000}/docs${NC}"
 echo -e "📊 Analytics Dashboard: ${GREEN}http://localhost:${DASHBOARD_PORT:-8501}${NC}"
 echo -e "🔧 Redis Database:     ${GREEN}localhost:${REDIS_PORT:-6379}${NC}"
+
+if [ "${ENABLE_NGROK_FRONTEND:-false}" = "true" ]; then
+    echo -e "\n${BLUE}🌐 Discovering ngrok public URL...${NC}"
+    if [ -x "$SCRIPT_DIR/scripts/show-ngrok-urls.sh" ]; then
+        "$SCRIPT_DIR/scripts/show-ngrok-urls.sh" --update-env --reload-backend || \
+            echo -e "${YELLOW}⚠️  Unable to fetch ngrok URL automatically. Run scripts/show-ngrok-urls.sh manually once the tunnel is ready.${NC}"
+    else
+        echo -e "${YELLOW}⚠️  scripts/show-ngrok-urls.sh is not executable or missing. Please run it manually after fixing permissions.${NC}"
+    fi
+fi
 
 echo -e "\n${YELLOW}📝 To view logs:${NC}"
 echo -e "All services: ${BLUE}$COMPOSE_CMD logs -f${NC}"

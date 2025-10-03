@@ -1,15 +1,58 @@
 # realtime.py - WebSocket and SSE endpoints for real-time communication
 from fastapi import WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import StreamingResponse
-from typing import Dict, List, Set
+from typing import Dict, Set
 import asyncio
 import json
 from datetime import datetime
 import logging
+import re
+
+from env_config import (
+    CORS_ALLOWED_ORIGINS,
+    CORS_ALLOWED_ORIGIN_REGEX,
+    CORS_ALLOW_CREDENTIALS,
+    PUBLIC_FRONTEND_URL,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+try:
+    _compiled_cors_origin_regex = (
+        re.compile(CORS_ALLOWED_ORIGIN_REGEX)
+        if CORS_ALLOWED_ORIGIN_REGEX
+        else None
+    )
+except re.error:
+    logger.warning(
+        "Invalid CORS_ALLOWED_ORIGIN_REGEX pattern: %s",
+        CORS_ALLOWED_ORIGIN_REGEX,
+    )
+    _compiled_cors_origin_regex = None
+
+
+def _is_origin_allowed(origin: str) -> bool:
+    if not origin:
+        return False
+
+    if not CORS_ALLOWED_ORIGINS:
+        return False
+
+    if '*' in CORS_ALLOWED_ORIGINS:
+        return True
+
+    if origin in CORS_ALLOWED_ORIGINS:
+        return True
+
+    if PUBLIC_FRONTEND_URL and origin == PUBLIC_FRONTEND_URL:
+        return True
+
+    if _compiled_cors_origin_regex and _compiled_cors_origin_regex.match(origin):
+        return True
+
+    return False
 
 class ConnectionManager:
     """Manages WebSocket connections for real-time communication"""
@@ -215,6 +258,18 @@ async def websocket_dashboard_endpoint(websocket: WebSocket):
 
 async def sse_endpoint(request: Request):
     """Server-Sent Events endpoint for real-time updates"""
+    origin = request.headers.get("origin")
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+    }
+
+    if _is_origin_allowed(origin):
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Vary"] = "Origin"
+        if CORS_ALLOW_CREDENTIALS:
+            headers["Access-Control-Allow-Credentials"] = "true"
+
     async def event_stream():
         # Create a queue for this SSE connection
         queue = asyncio.Queue()
@@ -237,16 +292,10 @@ async def sse_endpoint(request: Request):
             pass
         finally:
             connection_manager.sse_connections.discard(queue)
-    
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "*"
-        }
+        headers=headers
     )
 
 # Background task for event listening (simplified)
