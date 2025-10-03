@@ -39,6 +39,7 @@ async def get_leaderboard(difficulty: str = None):
                 # Calculate a simple score (this could be more sophisticated)
                 # For now, just use timestamp as a placeholder
                 session['score'] = session.get('timestamp', '0')
+
                 sessions.append(session)
         
         # Sort by timestamp (most recent first) - replace with actual scoring logic

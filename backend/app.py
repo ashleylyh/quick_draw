@@ -21,6 +21,7 @@ from env_config import (
     DASHBOARD_CLIENT,
     CORS_ENABLED,
     CORS_ALLOWED_ORIGINS,
+    CORS_ALLOWED_ORIGIN_REGEX,
     CORS_ALLOWED_METHODS,
     CORS_ALLOWED_HEADERS,
     CORS_EXPOSED_HEADERS,
@@ -69,7 +70,17 @@ app = FastAPI(
 
 # Enhanced CORS configuration
 if CORS_ENABLED:
-    logger.info(f"CORS enabled with origins: {CORS_ALLOWED_ORIGINS}")
+    allow_origins = ['*'] if CORS_ALLOWED_ORIGINS == ['*'] else CORS_ALLOWED_ORIGINS
+    origin_regex = CORS_ALLOWED_ORIGIN_REGEX if CORS_ALLOWED_ORIGIN_REGEX else None
+
+    if allow_origins == ['*']:
+        origin_regex = None
+
+    logger.info(
+        "CORS enabled with origins: %s%s",
+        allow_origins,
+        f" and regex: {origin_regex}" if origin_regex else ""
+    )
     
     # Handle wildcard headers
     allowed_headers = CORS_ALLOWED_HEADERS.split(',') if CORS_ALLOWED_HEADERS != '*' else ['*']
@@ -77,7 +88,8 @@ if CORS_ENABLED:
     
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=CORS_ALLOWED_ORIGINS,
+        allow_origins=allow_origins,
+        allow_origin_regex=origin_regex,
         allow_credentials=CORS_ALLOW_CREDENTIALS,
         allow_methods=CORS_ALLOWED_METHODS,
         allow_headers=allowed_headers,
