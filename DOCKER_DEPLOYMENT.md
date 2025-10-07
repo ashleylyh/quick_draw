@@ -16,6 +16,7 @@ The Docker setup creates 4 services that mirror your current development flow:
 - Docker and Docker Compose installed
 - At least 4GB RAM available for containers
 - Ports 3000, 6379, 8000, 8501 available on your system
+- (Optional) NVIDIA GPU drivers + NVIDIA Container Toolkit if you plan to run with GPU acceleration
 
 ### 1. One-Command Start
 ```bash
@@ -39,6 +40,13 @@ docker-compose up -d
 # View logs
 docker-compose logs -f
 ```
+
+### ⚡ Optional: Enable GPU Acceleration
+By default the stack runs entirely on CPU, so it works on servers without NVIDIA hardware. If you have an NVIDIA GPU and want TensorFlow to access it, supply the GPU override file when starting the stack:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+```
+This keeps the core configuration portable while enabling GPU reservations only when explicitly requested.
 
 ## 🔧 Docker Scripts
 
