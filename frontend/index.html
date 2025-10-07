@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>你畫我猜 -- AI猜圖擂台賽</title>
 
     <link rel="stylesheet" href="./sketch_style.css" />
@@ -27,7 +27,7 @@
           <div class="header-text">
             <h1>🎨🤖你畫我猜 - AI猜圖擂台賽 Quick Draw Duel!</h1>
             <p class="muted">共 6 題，每題 20 秒。玩家請在方框內依照指示詞進行作畫，AI會即時顯示預測機率。</p>
-            <p class="muted">A total of 6 questions, each with a time limit of 20 seconds. Players should draw in the box according to the given prompt, and the AI will display prediction probabilities in real time.</p>
+            <!-- <p class="muted">A total of 6 questions, each with a time limit of 20 seconds. Players should draw in the box according to the given prompt, and the AI will display prediction probabilities in real time.</p> -->
           </div>
           <div class="header-image">
             <img src="https://d2x1gov9yn7zyc.cloudfront.net/openhouse2025/uploads/website/2/event/image/275/114.11.08_%E4%BB%A3%E8%A1%A8%E5%9C%96_%E6%B4%BB%E5%8B%95%E4%BB%A3%E8%A1%A8%E5%9C%96-%E9%81%8A%E6%88%B2-final_%E5%8D%97%E9%83%A8__114.9.9.jpg" alt="AI Drawing Game" />
@@ -125,6 +125,10 @@
           <div class="toolbar">
             <button id="clearBtn" class="btn">清除畫布</button>
             <button id="submitBtn" class="btn brand">提交</button>
+          </div>
+          <div class="submit-warning" style="text-align: center; font-size: 12px; color: #666; margin-top: 8px;">
+            Please do not submit multiple times<br>
+            請勿重複提交
           </div>
         </div>
         <div id="res" class="center" style="margin-top:10px;"></div>
