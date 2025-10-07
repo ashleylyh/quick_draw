@@ -82,16 +82,19 @@ async function fetchBothPlots(sessionId) {
 
 // Individual population functions (no API calls)
 function populateSessionInfo(sessionData) {
+    console.log('populateSessionInfo called with:', sessionData);
     const playerInfo = document.getElementById('playerInfo');
     if (!playerInfo) return;
 
     // Handle timestamp formatting with error checking
     let formattedTime = '未知時間';
+    console.log('Raw timestamp from session data:', sessionData.timestamp);
     if (sessionData.timestamp) {
         try {
             formattedTime = formatTimestamp(sessionData.timestamp);
         } catch (error) {
             formattedTime = sessionData.timestamp; // Fallback to raw timestamp
+            console.log('Error formatting timestamp, using raw value:', error);
         }
     }
     playerInfo.innerHTML = `
@@ -144,8 +147,8 @@ function populateResultsTable(sessionData, drawingsData) {
         // Check correctness - if top1 prediction matches the prompt
         const isCorrect = sorted[0] && sorted[0].name === d.prompt;
         const correctnessDisplay = isCorrect ? 
-            '<span class="correct-indicator correct">✓</span>' : 
-            '<span class="correct-indicator incorrect">✗</span>';
+            '<span class="correct-indicator correct">&#10004;</span>' : 
+            '<span class="correct-indicator incorrect">&#10006;</span>';
         
         totalScore += d.corr_prob ? parseFloat(d.corr_prob)*100 : 0;
         totalTime += parseFloat(d.time_spent_sec) || 0;
@@ -768,9 +771,9 @@ async function populateAll(sessionId) {
             fetchRadarChart(sessionId)
         ]);
 
-        console.log('Umap Results:', umapResults);
-        console.log('Plots Results:', sessionResults);
-        console.log('Radar Results:', radarResults);
+        // console.log('Umap Results:', umapResults);
+        // console.log('Plots Results:', sessionResults);
+        // console.log('Radar Results:', radarResults);
         // Handle session results
         if (sessionResults.status === 'fulfilled') {
             const sessionData = sessionResults.value.session || sessionResults.value;

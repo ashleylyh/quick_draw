@@ -28,6 +28,10 @@ let drawStartAt = 0;
 let locked = false;
 const logs = [];
 
+// ===== Mobile/Touch State =====
+let isDrawingMode = false;
+let touchStartY = 0;
+
 // ===== Real-time variables =====
 let realTimeConnected = false;
 // let apiClient;
@@ -35,6 +39,49 @@ let realTimeManager;
 
 // ===== DOM helpers =====
 const $ = id => document.getElementById(id);
+
+// ===== Mobile/Touch Drawing Functions =====
+function enableDrawingMode() {
+  isDrawingMode = true;
+  document.body.classList.add('drawing-mode');
+  
+  // Prevent touchmove on the entire document during drawing
+  document.addEventListener('touchmove', preventScroll, { passive: false });
+  document.addEventListener('touchstart', handleTouchStart, { passive: false });
+}
+
+function disableDrawingMode() {
+  isDrawingMode = false;
+  document.body.classList.remove('drawing-mode');
+  
+  // Remove touch event listeners
+  document.removeEventListener('touchmove', preventScroll);
+  document.removeEventListener('touchstart', handleTouchStart);
+}
+
+function preventScroll(e) {
+  // Only prevent scrolling if we're in drawing mode and touching the canvas area
+  if (isDrawingMode) {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      
+      // Check if touch is within canvas bounds
+      if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+          touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        e.preventDefault();
+        return false;
+      }
+    }
+  }
+}
+
+function handleTouchStart(e) {
+  if (isDrawingMode) {
+    touchStartY = e.touches[0].clientY;
+  }
+}
 
 // Initialize real-time features when available
 function initializeRealTime() {
@@ -168,7 +215,13 @@ function showView(viewId) {
   });
   updateHeaderImageVisibility(viewId);
   updateBadgeVisibility(viewId);
-
+  
+  // Enable/disable drawing mode for mobile optimization
+  if (viewId === 'view-draw') {
+    enableDrawingMode();
+  } else {
+    disableDrawingMode();
+  }
 }
 
 function updateHeaderImageVisibility(viewId) {
@@ -514,7 +567,22 @@ window.mouseDragged = function mouseDragged() {
   if (mouseX >= 0 && mouseX < width && mouseY >= 0 && mouseY < height && !locked) { stroke(0); strokeWeight(BRUSH_WEIGHT); line(pmouseX, pmouseY, mouseX, mouseY); return false; }
 }
 window.touchMoved = function touchMoved() {
-  if (touchX >= 0 && touchX < width && touchY >= 0 && touchY < height && !locked) { stroke(0); strokeWeight(BRUSH_WEIGHT); line(ptouchX, ptouchY, touchX, touchY); return false; }
+  if (touchX >= 0 && touchX < width && touchY >= 0 && touchY < height && !locked) { 
+    stroke(0); 
+    strokeWeight(BRUSH_WEIGHT); 
+    line(ptouchX, ptouchY, touchX, touchY); 
+    return false; // Prevent default touch behavior
+  }
+  // If drawing outside canvas bounds, allow default behavior but limit scrolling
+  return isDrawingMode ? false : true;
+}
+
+window.touchStarted = function touchStarted() {
+  // Prevent default behavior when touching canvas during drawing mode
+  if (isDrawingMode && touchX >= 0 && touchX < width && touchY >= 0 && touchY < height && !locked) {
+    return false;
+  }
+  return true;
 }
 
 // ===== Initialize real-time features when DOM is ready =====
