@@ -22,7 +22,7 @@ async function fetchPlayerDrawings(sessionId) {
 
 async function fetchUMAPVisualization(sessionId) {
     try {
-        console.log(`Fetching UMAP visualization for session: ${sessionId}`);
+        // console.log(`Fetching UMAP visualization for session: ${sessionId}`);
         const response = await fetch(`${window.CONFIG.API_BASE}/umap/${sessionId}`);
         
         if (!response.ok) {
@@ -32,7 +32,7 @@ async function fetchUMAPVisualization(sessionId) {
         }
         
         const data = await response.json();
-        console.log('UMAP API response:', data);
+        // console.log('UMAP API response:', data);
         return data;
     } catch (error) {
         console.error('Error fetching UMAP visualization:', error);
@@ -42,7 +42,7 @@ async function fetchUMAPVisualization(sessionId) {
 
 async function fetchRadarChart(sessionId) {
     try {
-        console.log(`Fetching radar chart for session: ${sessionId}`);
+        // console.log(`Fetching radar chart for session: ${sessionId}`);
         const response = await fetch(`${window.CONFIG.API_BASE}/radar/${sessionId}`);
         
         if (!response.ok) {
@@ -52,7 +52,7 @@ async function fetchRadarChart(sessionId) {
         }
         
         const data = await response.json();
-        console.log('Radar API response:', data);
+        // console.log('Radar API response:', data);
         return data;
     } catch (error) {
         console.error('Error fetching radar chart:', error);
@@ -62,7 +62,7 @@ async function fetchRadarChart(sessionId) {
 
 async function fetchBothPlots(sessionId) {
     try {
-        console.log(`Fetching both plots for session: ${sessionId}`);
+        // console.log(`Fetching both plots for session: ${sessionId}`);
         const response = await fetch(`${window.CONFIG.API_BASE}/plots/${sessionId}`);
         
         if (!response.ok) {
@@ -72,7 +72,7 @@ async function fetchBothPlots(sessionId) {
         }
         
         const data = await response.json();
-        console.log('Both plots API response:', data);
+        // console.log('Both plots API response:', data);
         return data;
     } catch (error) {
         console.error('Error fetching both plots:', error);
@@ -82,13 +82,13 @@ async function fetchBothPlots(sessionId) {
 
 // Individual population functions (no API calls)
 function populateSessionInfo(sessionData) {
-    console.log('populateSessionInfo called with:', sessionData);
+    // console.log('populateSessionInfo called with:', sessionData);
     const playerInfo = document.getElementById('playerInfo');
     if (!playerInfo) return;
 
     // Handle timestamp formatting with error checking
     let formattedTime = '未知時間';
-    console.log('Raw timestamp from session data:', sessionData.timestamp);
+    // console.log('Raw timestamp from session data:', sessionData.timestamp);
     if (sessionData.timestamp) {
         try {
             formattedTime = formatTimestamp(sessionData.timestamp);
@@ -99,7 +99,7 @@ function populateSessionInfo(sessionData) {
             }
         } catch (error) {
             formattedTime = sessionData.timestamp; // Fallback to raw timestamp
-            console.log('Error formatting timestamp, using raw value:', error);
+            // console.log('Error formatting timestamp, using raw value:', error);
         }
     }
     playerInfo.innerHTML = `
@@ -224,7 +224,7 @@ function populateUMAPVisualization(umapData) {
     const umapImage = document.getElementById('umapImage');
     const umapLoading = document.getElementById('umapLoading');
     
-    console.log('populateUMAPVisualization called with:', umapData);
+    // console.log('populateUMAPVisualization called with:', umapData);
     
     if (!umapImage || !umapLoading) {
         console.error('UMAP DOM elements not found:', {
@@ -235,11 +235,11 @@ function populateUMAPVisualization(umapData) {
     }
     
     if (umapData && umapData.status === 'success' && umapData.image_base64) {
-        console.log('UMAP data is valid, setting image source');
+        // console.log('UMAP data is valid, setting image source');
         
         // Add error handling for image loading
         umapImage.onload = function() {
-            console.log('UMAP image loaded successfully');
+            // console.log('UMAP image loaded successfully');
             umapImage.style.display = 'block';
             umapLoading.style.display = 'none';
         };
@@ -254,7 +254,7 @@ function populateUMAPVisualization(umapData) {
         
         // Show additional info if available
         if (umapData.embeddings_count) {
-            console.log(`UMAP generated from ${umapData.embeddings_count} embeddings`);
+            // console.log(`UMAP generated from ${umapData.embeddings_count} embeddings`);
         }
         if (umapData.skipped_classes && umapData.skipped_classes.length > 0) {
             console.warn('Some classes were skipped:', umapData.skipped_classes);
@@ -287,7 +287,7 @@ function populateRadarChart(radarData) {
     const radarImage = document.getElementById('radarImage');
     const radarLoading = document.getElementById('radarLoading');
     
-    console.log('populateRadarChart called with:', radarData);
+    // console.log('populateRadarChart called with:', radarData);
     
     if (!radarImage || !radarLoading) {
         console.error('Radar DOM elements not found:', {
@@ -298,11 +298,11 @@ function populateRadarChart(radarData) {
     }
     
     if (radarData && radarData.status === 'success' && radarData.image_base64) {
-        console.log('Radar data is valid, setting image source');
+        // console.log('Radar data is valid, setting image source');
         
         // Add error handling for image loading
         radarImage.onload = function() {
-            console.log('Radar image loaded successfully');
+            // console.log('Radar image loaded successfully');
             radarImage.style.display = 'block';
             radarLoading.style.display = 'none';
         };
@@ -316,15 +316,15 @@ function populateRadarChart(radarData) {
         radarImage.src = `data:image/png;base64,${radarData.image_base64}`;
         
         // Show additional info if available
-        if (radarData.drawings_count) {
-            console.log(`Radar chart generated from ${radarData.drawings_count} drawings`);
-        }
-        if (radarData.prompts && radarData.probabilities) {
-            console.log('Radar data:', {
-                prompts: radarData.prompts,
-                probabilities: radarData.probabilities
-            });
-        }
+        // if (radarData.drawings_count) {
+        //     console.log(`Radar chart generated from ${radarData.drawings_count} drawings`);
+        // }
+        // if (radarData.prompts && radarData.probabilities) {
+        //     console.log('Radar data:', {
+        //         prompts: radarData.prompts,
+        //         probabilities: radarData.probabilities
+        //     });
+        // }
         
     } else {
         console.error('Radar data is invalid:', {
@@ -493,7 +493,7 @@ async function generateQRCode(sessionData, drawingsData) {
             // Upload screenshot to backend
             qrStatus.textContent = '上傳截圖中...';
             shareableUrl = await uploadScreenshot(screenshotBase64, sessionData);
-            console.log('Shareable URL:', shareableUrl);
+            // console.log('Shareable URL:', shareableUrl);
             
             // Generate QR code on backend and store in Redis
             qrStatus.textContent = '生成 QR 碼並存入資料庫...';
@@ -616,7 +616,7 @@ async function generateQRCodeOnBackend(sessionData, shareableUrl) {
         });
         
         const result = await response.json();
-        console.log('QR code generation response data:', result);
+        // console.log('QR code generation response data:', result);
         if (result.status === 'success') {
             return {
                 qrImageBase64: result.qr_image_base64,
@@ -653,7 +653,7 @@ async function uploadScreenshot(base64String, sessionData) {
     
     const result = await response.json();
     if (result.status === 'success' && result.shareableUrl) {
-        console.log('Screenshot uploaded successfully');
+        // console.log('Screenshot uploaded successfully');
         return result.shareableUrl;
     } else {
         throw new Error(result.error || '上傳失敗');
@@ -683,7 +683,7 @@ async function populateAllWithCombinedPlots(sessionId) {
             fetchBothPlots(sessionId)
         ]);
 
-        console.log('Plots Results:', sessionResults);
+        // console.log('Plots Results:', sessionResults);
         
         // Handle session results
         if (sessionResults.status === 'fulfilled') {
@@ -711,7 +711,7 @@ async function populateAllWithCombinedPlots(sessionId) {
         // Handle both plots
         if (plotsResults.status === 'fulfilled') {
             const plotsData = plotsResults.value;
-            console.log('Both plots request fulfilled successfully');
+            // console.log('Both plots request fulfilled successfully');
             
             // Handle UMAP
             if (plotsData.umap && plotsData.umap.status === 'success') {
@@ -809,7 +809,7 @@ async function populateAll(sessionId) {
 
         // Handle UMAP visualization
         if (umapResults.status === 'fulfilled') {
-            console.log('UMAP request fulfilled successfully');
+            // console.log('UMAP request fulfilled successfully');
             populateUMAPVisualization(umapResults.value);
         } else {
             console.error('UMAP request failed:', umapResults.reason);
@@ -824,7 +824,7 @@ async function populateAll(sessionId) {
 
         // Handle Radar chart
         if (radarResults.status === 'fulfilled') {
-            console.log('Radar request fulfilled successfully');
+            // console.log('Radar request fulfilled successfully');
             populateRadarChart(radarResults.value);
         } else {
             console.error('Radar request failed:', radarResults.reason);
@@ -856,7 +856,7 @@ function loadResults() {
         //     console.log('Using combined plots API for better performance');
         //     populateAllWithCombinedPlots(sessionId);
         // } else {
-            console.log('Using separate API calls');
+            // console.log('Using separate API calls');
             populateAll(sessionId);
         // }
     } else if (window.scoreData) {
@@ -893,9 +893,9 @@ document.getElementById('restartBtn').addEventListener('click', function() {
 
 document.addEventListener('DOMContentLoaded', function() {
     // Log library availability on page load
-    console.log('Page loaded, checking libraries...');
-    console.log('html2canvas available:', typeof html2canvas !== 'undefined');
-    console.log('qrcode available:', typeof QRCode !== 'undefined');
+    // console.log('Page loaded, checking libraries...');
+    // console.log('html2canvas available:', typeof html2canvas !== 'undefined');
+    // console.log('qrcode available:', typeof QRCode !== 'undefined');
     
     loadResults();
 });

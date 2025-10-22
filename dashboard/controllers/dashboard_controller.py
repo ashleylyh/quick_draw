@@ -69,17 +69,17 @@ class DashboardController:
         
         st.sidebar.divider()
         
-        # Backend URL configuration
-        backend_url = st.sidebar.text_input(
-            "Backend URL 後端網址", 
-            value=self.backend_url,
-            help="URL of your QuickDraw backend API 你畫我猜後端API網址"
-        )
+        # # Backend URL configuration
+        # backend_url = st.sidebar.text_input(
+        #     "Backend URL 後端網址", 
+        #     value=self.backend_url,
+        #     help="URL of your QuickDraw backend API 你畫我猜後端API網址"
+        # )
         
-        # Update backend URL if changed
-        if backend_url != self.backend_url:
-            self.backend_url = backend_url
-            self.data_fetcher = DataFetcher(backend_url)
+        # # Update backend URL if changed
+        # if backend_url != self.backend_url:
+        #     self.backend_url = backend_url
+        #     self.data_fetcher = DataFetcher(backend_url)
         
         # Check backend connection
         if not self.data_fetcher.check_connection():
