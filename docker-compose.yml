@@ -111,7 +111,7 @@ services:
       - ./logs:/app/logs
       - ./dashboard/.streamlit:/app/dashboard/.streamlit
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8501/dashboard/_stcore/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -139,29 +139,7 @@ services:
     networks:
       - quickdraw-network
 
-  # ngrok tunnel for the entire app through nginx (optional)
-  ngrok-app:
-    image: ngrok/ngrok:latest
-    container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-ngrok-app
-    restart: unless-stopped
-    depends_on:
-      nginx:
-        condition: service_started
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    command:
-      - "http"
-      - "nginx:80"
-      - "--region"
-      - "${NGROK_REGION:-ap}"
-      - "--log"
-      - "stdout"
-    ports:
-      - "${NGROK_INSPECT_PORT:-4040}:4040"
-    networks:
-      - quickdraw-network
-    profiles:
-      - sharing
+
 
 volumes:
   redis_data:
