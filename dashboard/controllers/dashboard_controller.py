@@ -16,7 +16,7 @@ class DashboardController:
     def __init__(self):
         # Use environment variable for backend URL (for Docker compatibility)
         import os
-        self.backend_url = os.getenv("QUICKDRAW_BACKEND_URL", "http://localhost:8000")
+        self.backend_url = os.getenv("QUICKDRAW_BACKEND_URL", "http://http://140.109.74.39:8088/")
         self.data_fetcher = DataFetcher(backend_url=self.backend_url)
         
         # Initialize session state for language if not exists
@@ -219,7 +219,7 @@ class DashboardController:
     def load_data(self, time_range: str, difficulty_filter: List[str]) -> List[Dict[str, Any]]:
         """Load and filter dashboard data"""
         with st.spinner("Loading dashboard data... 載入儀表板數據中..."):
-            sessions_data = self.data_fetcher.get_all_sessions()
+            sessions_data = self.data_fetcher.get_all_sessions(filter_complete=True)  # Only complete sessions for dashboard
             
             if not sessions_data:
                 st.warning("No game data found. Play some games first! 找不到遊戲數據，請先玩幾局遊戲！")
