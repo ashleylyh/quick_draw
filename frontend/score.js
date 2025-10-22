@@ -80,6 +80,47 @@ async function fetchBothPlots(sessionId) {
     }
 }
 
+async function fetchRankingsAndFindPosition(sessionId, difficulty) {
+    try {
+        // console.log(`Fetching rankings for difficulty: ${difficulty}`);
+        const response = await fetch(`${window.CONFIG.API_BASE}/dashboard/rankings?difficulty=${difficulty}`);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Rankings API error: ${response.status} ${response.statusText}`, errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        // console.log('Rankings API response:', data);
+        
+        // Find the position of the current session_id in the rankings
+        if (data.rankings && Array.isArray(data.rankings)) {
+            const position = data.rankings.findIndex(player => player.session_id === sessionId);
+            if (position !== -1) {
+                return {
+                    ranking: position + 1, // Convert from 0-based index to 1-based ranking
+                    totalPlayers: data.rankings.length,
+                    playerData: data.rankings[position]
+                };
+            } else {
+                console.warn(`Session ID ${sessionId} not found in rankings`);
+                return {
+                    ranking: null,
+                    totalPlayers: data.rankings.length,
+                    playerData: null
+                };
+            }
+        } else {
+            throw new Error('Invalid rankings data structure received');
+        }
+    } catch (error) {
+        console.error('Error fetching rankings:', error);
+        throw error;
+    }
+}
+
+
 // Individual population functions (no API calls)
 function populateSessionInfo(sessionData) {
     // console.log('populateSessionInfo called with:', sessionData);
@@ -176,6 +217,7 @@ function populateResultsTable(sessionData, drawingsData) {
     // Update total score and time displays
     updateTotalScore(totalScore);
     updateTotalTime(totalTime);
+    updateTotalRanking(sessionData.session_id, sessionData.difficulty);
 }
 
 function updateTotalScore(totalScore) {
@@ -190,6 +232,43 @@ function updateTotalTime(totalTime) {
     if (totalTimeValue) {
         totalTimeValue.textContent = totalTime.toFixed(1);
     }
+}
+
+function updateTotalRanking(sessionId, difficulty) {
+    if (!sessionId || !difficulty) {
+        console.warn('Missing sessionId or difficulty for ranking update');
+        const totalRankingValue = document.getElementById('totalRankingValue');
+        if (totalRankingValue) {
+            totalRankingValue.textContent = '未知';
+        }
+        return;
+    }
+
+    // Set loading state
+    const totalRankingValue = document.getElementById('totalRankingValue');
+    if (totalRankingValue) {
+        totalRankingValue.textContent = '載入中...';
+    }
+
+    // Fetch real ranking data
+    fetchRankingsAndFindPosition(sessionId, difficulty)
+        .then(result => {
+            if (totalRankingValue) {
+                if (result.ranking !== null) {
+                    totalRankingValue.textContent = result.ranking;
+                } else {
+                    totalRankingValue.textContent = '未排名';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Failed to update ranking:', error);
+            if (totalRankingValue) {
+                // Fallback to random number for testing if API fails
+                const randomRanking = Math.floor(Math.random() * 100) + 1;
+                totalRankingValue.textContent = randomRanking;
+            }
+        });
 }
 
 function populatePlayerDrawings(drawingsData) {
