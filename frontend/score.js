@@ -129,11 +129,18 @@ function populateSessionInfo(sessionData) {
 
     // Handle timestamp formatting with error checking
     let formattedTime = '未知時間';
+    // console.log('Raw timestamp from session data:', sessionData.timestamp);
     if (sessionData.timestamp) {
         try {
             formattedTime = formatTimestamp(sessionData.timestamp);
+            if (typeof formattedTime === 'string' || formattedTime instanceof String) {
+                // Convert to Asia/Taipei timezone (UTC+8)
+                const date = new Date(sessionData.timestamp);
+                formattedTime = date.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+            }
         } catch (error) {
             formattedTime = sessionData.timestamp; // Fallback to raw timestamp
+            // console.log('Error formatting timestamp, using raw value:', error);
         }
     }
     playerInfo.innerHTML = `
