@@ -343,7 +343,7 @@ function startDrawing() {
   const resEl = $('res'); if (resEl) resEl.innerHTML = '';
   updateTimer();
   if (timerId) clearInterval(timerId); timerId = setInterval(updateTimer, 100);
-  if (previewId) clearInterval(previewId); previewId = setInterval(previewPredict, 900);
+  if (previewId) clearInterval(previewId); previewId = setInterval(previewPredict, 3000);
   showView('view-draw');
 }
 
