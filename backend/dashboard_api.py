@@ -137,29 +137,13 @@ async def get_rankings(
         r = get_redis()
         data_fetcher = DataFetcher()
         
-        # Get all sessions for this difficulty
-        sessions = data_fetcher.get_all_sessions()
-        filtered_sessions = [s for s in sessions if s.get('difficulty') == difficulty]
+        # Get all complete sessions (filtered by default) and filter for difficulty
+        all_sessions = data_fetcher.get_all_sessions(filter_complete=True)
+        filtered_sessions = [s for s in all_sessions if s.get('difficulty') == difficulty]
         
-        # Calculate rankings
-        rankings = []
-        for session in filtered_sessions:
-            drawings = session.get('drawings', [])
-            total_score = data_fetcher.calculate_session_score(drawings)
-            
-            rankings.append({
-                'player_name': session.get('player_name', 'Unknown'),
-                'total_score': total_score,
-                'games_played': len(drawings),
-                'timestamp': session.get('timestamp', ''),
-                'session_id': session.get('session_id', ''),
-                'age': session.get('age', 0),
-                'gender': session.get('gender', 'Unknown')
-            })
-        
-        # Sort by score and limit
-        rankings.sort(key=lambda x: x['total_score'], reverse=True)
-        # top_rankings = rankings[:limit] if limit else rankings
+        # Get ranking data using the DataFetcher method
+        ranking_data = data_fetcher.get_ranking_data(filtered_sessions)
+        rankings = ranking_data.get(difficulty, [])
         
         return {
             "difficulty": difficulty,
@@ -181,7 +165,7 @@ async def get_score_distribution(
     try:
 
         data_fetcher = DataFetcher()
-        sessions = data_fetcher.get_all_sessions()
+        sessions = data_fetcher.get_all_sessions(filter_complete=True)  # Only complete sessions for score distribution
         
         if difficulty:
             sessions = [s for s in sessions if s.get('difficulty') == difficulty]
@@ -234,7 +218,7 @@ async def get_recent_activity(
     try:
 
         data_fetcher = DataFetcher()
-        sessions = data_fetcher.get_all_sessions()
+        sessions = data_fetcher.get_all_sessions(filter_complete=False)  # Show all sessions including incomplete ones
         
         # Sort by timestamp (most recent first)
         sessions.sort(key=lambda x: x.get('timestamp', ''), reverse=True)

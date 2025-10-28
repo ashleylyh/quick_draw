@@ -101,7 +101,7 @@ services:
       backend:
         condition: service_healthy
     environment:
-      - QUICKDRAW_BACKEND_URL=http://backend:${BACKEND_PORT:-8000}
+      - QUICKDRAW_BACKEND_URL=${QUICKDRAW_BACKEND_URL:-http://localhost:8000}
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_DB=${REDIS_DB:-0}
@@ -111,7 +111,7 @@ services:
       - ./logs:/app/logs
       - ./dashboard/.streamlit:/app/dashboard/.streamlit
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8501/dashboard/_stcore/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -123,7 +123,7 @@ services:
     image: nginx:alpine
     container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-nginx
     ports:
-      - "${NGINX_PORT:-8080}:80"
+      - "${NGINX_PORT:-8088}:80"
     depends_on:
       frontend:
         condition: service_healthy
@@ -139,29 +139,6 @@ services:
     networks:
       - quickdraw-network
 
-  # ngrok tunnel for the entire app through nginx (optional)
-  ngrok-app:
-    image: ngrok/ngrok:latest
-    container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-ngrok-app
-    restart: unless-stopped
-    depends_on:
-      nginx:
-        condition: service_started
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    command:
-      - "http"
-      - "nginx:80"
-      - "--region"
-      - "${NGROK_REGION:-ap}"
-      - "--log"
-      - "stdout"
-    ports:
-      - "${NGROK_INSPECT_PORT:-4040}:4040"
-    networks:
-      - quickdraw-network
-    profiles:
-      - sharing
 
 volumes:
   redis_data:

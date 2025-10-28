@@ -174,12 +174,12 @@ body {
 /* Total score section */
 .total-score-section {
     text-align: center;
-    margin-bottom: 20px;
+    /* margin-bottom: 10px; */
 }
 
 .total-score-section h2 {
     font-size: 18px;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     color: var(--card-bg);
 }
 
@@ -232,6 +232,38 @@ body {
 }
 
 .time-label {
+    font-size: 14px;
+    font-weight: normal;
+}
+
+/* Total ranking section */
+.total-ranking-section {
+    text-align: center;
+}
+
+.total-ranking-section h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: var(--card-bg);
+}
+
+.total-ranking-display {
+    background: var(--pink);
+    color: var(--blue-bg1);
+    border-radius: 12px;
+    padding: 15px;
+    display: inline-block;
+    min-width: 150px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ranking-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.ranking-label {
     font-size: 14px;
     font-weight: normal;
 }
@@ -539,13 +571,15 @@ body {
     }
     
     .total-score-display,
-    .total-time-display {
+    .total-time-display,
+    .total-ranking-display {
         min-width: 120px;
         padding: 10px;
     }
     
     .score-value,
-    .time-value {
+    .time-value,
+    .ranking-value {
         font-size: 20px;
     }
     
