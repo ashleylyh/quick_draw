@@ -62,12 +62,20 @@ header.card {
   padding-bottom: 14px; 
   flex: 0 0 auto;
   justify-content: flex-start;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform-origin: top center;
 }
 
 /* Fix for done view - don't stretch to full height */
 #view-done.card {
   flex: 0 0 auto;
   justify-content: flex-start;
+}
+
+/* Fix for draw view - prevent vertical centering from hiding content */
+#view-draw.card {
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .header-content {
@@ -125,6 +133,27 @@ header.card {
 
 body:not(.show-header-image) .header-image {
   display: none !important;
+}
+
+/* Hide entire header during drawing phases */
+body.hide-header header.card {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.95);
+  pointer-events: none;
+  margin-bottom: 0;
+  padding: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Show header on form and done views */
+body.show-header header.card {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  margin-bottom: 16px;
+  padding: clamp(12px, 3vw, 22px);
+  height: auto;
 }
 
 /* Acknowledgment Section (only in form view) */
@@ -308,6 +337,33 @@ input[type="text"]:focus, input[type="number"]:focus {
   font-size: clamp(14px, 2.5vw, 16px);
 }
 .error { color: var(--red); margin-top: 8px; min-height: 20px; }
+/* Main container for side-by-side layout */
+.draw-main-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 400px;
+}
+
+/* Left side - Canvas */
+.draw-left {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Right side - Controls and Predictions */
+.draw-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px;
+  min-width: 250px;
+}
+
 .draw-wrap { 
   display: flex; 
   flex-direction: column;
@@ -323,7 +379,74 @@ input[type="text"]:focus, input[type="number"]:focus {
   padding: clamp(8px, 2vw, 12px); 
   box-shadow: var(--shadow); 
   max-width: 100%;
-  overflow: hidden;
+  overflow: visible;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Controls section styling */
+.controls-section {
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+
+.controls-section .toolbar {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.submit-warning {
+  text-align: center;
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+
+/* Predictions section styling */
+.predictions-section {
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  min-height: 80px;
+}
+
+.predictions-title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--brand);
+  text-align: center;
+}
+
+.predictions-display {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Time up section */
+.time-up-section {
+  display: none;
+  font-weight: 700;
+  color: var(--red);
+  text-align: center;
+  background: #fef2f2;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--red);
 }
 
 .toolbar { 
@@ -416,7 +539,7 @@ input[type="text"]:focus, input[type="number"]:focus {
   color: var(--brand);
   font-size: clamp(16px, 3vw, 18px);
 }
-#res { min-height: 24px; text-align: center; }
+/* Old #res styling removed - now using .predictions-display */
 #timeUpMsg { 
   display: none; 
   font-weight: 700; 
@@ -496,7 +619,35 @@ body.drawing-mode #drawPrompt {
   .canvas-shell {
     margin: 10px 0;
     border-width: 3px;
+    /* Ensure larger canvas fits on mobile */
+    max-width: 95vw;
+    overflow: visible;
   }
+  
+  /* Ensure canvas scales properly on small screens */
+  .canvas-shell canvas {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Make result element more visible on mobile */
+  #res {
+    font-size: 14px;
+    padding: 10px;
+    margin: 15px 0;
+    /* background: rgba(59, 130, 246, 0.15); */
+  }
+  
+  /* Mobile header adjustments */
+  body.show-header header.card {
+    margin-bottom: 12px;
+    padding: 14px;
+  }
+  
+  body.hide-header header.card {
+    margin-bottom: 0;
+  }
+}
   
   /* Ensure timer and prompt are easily visible */
   #timer {
@@ -515,12 +666,12 @@ body.drawing-mode #drawPrompt {
     font-weight: bold;
     text-align: center;
     padding: 12px;
-    background: var(--brand);
+    /* background: var(--brand); */
     color: white;
     border-radius: 12px;
     margin-bottom: 15px;
   }
-}
+
 
 @media (max-width: 820px) { 
   .form-row-pair { grid-template-columns: 1fr; gap: 12px; }
@@ -529,6 +680,31 @@ body.drawing-mode #drawPrompt {
   .actions { justify-content: center; }
   .done-actions { flex-direction: column; align-items: center; }
   .container { margin: 8px auto; padding: 0 8px; }
+  
+  /* Mobile: Stack canvas and controls vertically */
+  .draw-main-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .draw-left {
+    flex: none;
+    width: 100%;
+  }
+  
+  .draw-right {
+    flex: none;
+    width: 100%;
+    padding: 5px;
+  }
+  
+  .controls-section, .predictions-section {
+    padding: 12px;
+  }
+  
+  .predictions-title {
+    font-size: 14px;
+  }
   
   .header-content {
     flex-direction: column;
@@ -560,6 +736,19 @@ body.drawing-mode #drawPrompt {
   .acknowledgment-content p {
     font-size: 12px;
     margin: 4px 0;
+  }
+  
+  /* Canvas and result element mobile optimizations */
+  .canvas-shell canvas {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Mobile predictions display */
+  .predictions-display {
+    font-size: 14px;
+    padding: 10px;
+    min-height: 35px;
   }
 }
 

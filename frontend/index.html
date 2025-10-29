@@ -120,19 +120,33 @@
       <section id="view-draw" class="view card">
         <div class="prompt" id="drawPrompt">—</div>
         <div class="timer" id="timer">—</div>
-        <div class="draw-wrap">
-          <div id="canvasContainer" class="canvas-shell"></div>
-          <div class="toolbar">
-            <button id="clearBtn" class="btn">清除畫布</button>
-            <button id="submitBtn" class="btn brand">提交</button>
+        <div class="draw-main-container">
+          <!-- Left side: Canvas -->
+          <div class="draw-left">
+            <div id="canvasContainer" class="canvas-shell"></div>
           </div>
-          <div class="submit-warning" style="text-align: center; font-size: 12px; color: #666; margin-top: 8px;">
-            Please do not submit multiple times<br>
-            請勿重複提交
+          
+          <!-- Right side: Controls and Predictions -->
+          <div class="draw-right">
+            <div class="controls-section">
+              <div class="toolbar">
+                <button id="clearBtn" class="btn">清除畫布</button>
+                <button id="submitBtn" class="btn brand">提交</button>
+              </div>
+              <div class="submit-warning">
+                Please do not submit multiple times<br>
+                請勿重複提交
+              </div>
+            </div>
+            
+            <div class="predictions-section">
+              <h4 class="predictions-title">即時預測</h4>
+              <div id="res" class="predictions-display"></div>
+            </div>
+            
+            <div id="timeUpMsg" class="time-up-section">時間到！請按「提交」進入下一題。</div>
           </div>
         </div>
-        <div id="res" class="center" style="margin-top:10px;"></div>
-        <div id="timeUpMsg">時間到！請按「提交」進入下一題。</div>
       </section>
     </div>
   </body>

@@ -2,12 +2,12 @@ import { toZh } from './utils.js';
 
 'use strict';
 // ===== Constants =====
-const CANVAS_SIDE = 280;        // larger canvas for better drawing
+const CANVAS_SIDE = 350; // 280;        // larger canvas for better drawing
 const TIME_LIMIT_SEC = 20;
 const TIME_LIMIT_MS = TIME_LIMIT_SEC * 1000;
 const TOP_SHOW = 3;
 const NUM_ROUNDS = 6;
-const BRUSH_WEIGHT = 10;
+const BRUSH_WEIGHT = 12.5; //10;
 const API_BASE = window.CONFIG.API_BASE;
 
 // ===== State =====
@@ -213,7 +213,7 @@ function showView(viewId) {
     if (!el) return;
     el.classList.toggle('active', v === viewId);
   });
-  updateHeaderImageVisibility(viewId);
+  updateHeaderVisibility(viewId);
   updateBadgeVisibility(viewId);
   
   // Enable/disable drawing mode for mobile optimization
@@ -224,11 +224,20 @@ function showView(viewId) {
   }
 }
 
-function updateHeaderImageVisibility(viewId) {
+function updateHeaderVisibility(viewId) {
 if (viewId === 'view-form') {
   document.body.classList.add('show-header-image');
-} else {
+  document.body.classList.add('show-header');
+  document.body.classList.remove('hide-header');
+} else if (viewId === 'view-done') {
   document.body.classList.remove('show-header-image');
+  document.body.classList.add('show-header');
+  document.body.classList.remove('hide-header');
+} else {
+  // view-instruct and view-draw - hide header completely
+  document.body.classList.remove('show-header-image');
+  document.body.classList.remove('show-header');
+  document.body.classList.add('hide-header');
 }
 }
 
@@ -363,25 +372,39 @@ function updateTimer() {
 }
 
 function getInputImageAsBase64() {
-  if (!cnv) return null;
-  const canvas = cnv.elt; const temp = document.createElement('canvas');
-  temp.width = 28; temp.height = 28; const tctx = temp.getContext('2d');
-  tctx.fillStyle = '#fff'; tctx.fillRect(0,0,28,28);
+  if (!cnv) {
+    return null;
+  }
+  const canvas = cnv.elt; 
+  if (!canvas) {
+    return null;
+  }
+  
+  const temp = document.createElement('canvas');
+  temp.width = 28; temp.height = 28; 
+  const tctx = temp.getContext('2d');
+  tctx.fillStyle = '#fff'; 
+  tctx.fillRect(0,0,28,28);
   tctx.drawImage(canvas, 0, 0, 28, 28);
-  return temp.toDataURL('image/png');
+  
+  const dataURL = temp.toDataURL('image/png');
+  // console.log('getInputImageAsBase64: Generated data URL length:', dataURL.length);
+  return dataURL;
 }
 
 async function previewPredict() {
   if (locked) return; 
   const resEl = $('res'); 
-  if (!resEl) return;
+  if (!resEl) {
+    return;
+  }
   
   try {
     const imageData = getInputImageAsBase64();
     if (!imageData) { 
       resEl.innerHTML = '即時預覽：請開始繪畫...'; 
       return; 
-    }
+    };
     
     const roundChoices = activeRounds[roundIdx] || [];
     
@@ -399,7 +422,6 @@ async function previewPredict() {
       return; 
     }
     result = await resp.json();
-  
     
     if (result.success && result.predictions) {
       const sorted = Object.entries(result.predictions)
@@ -412,6 +434,12 @@ async function previewPredict() {
           .map(t=>`${toZh(t.name)} ${(t.p*100).toFixed(1)}%`)
           .join('，');
         resEl.innerHTML = `即時：${predictionText}`;
+        
+        // Force visibility and styling
+        resEl.style.display = 'block';
+        resEl.style.visibility = 'visible';
+        resEl.style.opacity = '1';
+        resEl.style.minHeight = '24px';
         
         // Add visual feedback for high confidence predictions
         const topConfidence = top3[0]?.p || 0;
