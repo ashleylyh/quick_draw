@@ -55,6 +55,7 @@ else:
 CORS_ALLOWED_METHODS = [method.strip() for method in os.getenv('CORS_ALLOWED_METHODS', 'GET,POST,PUT,DELETE,OPTIONS').split(',') if method.strip()]
 CORS_ALLOWED_HEADERS = os.getenv('CORS_ALLOWED_HEADERS', '*')
 CORS_EXPOSED_HEADERS = os.getenv('CORS_EXPOSED_HEADERS', '*')
+CORS_ALLOWED_ORIGIN_REGEX = os.getenv('CORS_ALLOWED_ORIGIN_REGEX', '*')
 CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'true').lower() == 'true'
 CORS_MAX_AGE = int(os.getenv('CORS_MAX_AGE', '3600'))
 
