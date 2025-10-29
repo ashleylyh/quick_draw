@@ -330,4 +330,11 @@ BACKEND_API_URL=http://localhost:8000
 
 **🎨 Ready to start drawing? Run `./start-all.sh` and visit http://localhost:3000!**
 
+---
+### Docker Command 
 
+docker compose build
+
+docker compose --profile sharing up -d
+
+docker compose --profile sharing down

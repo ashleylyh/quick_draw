@@ -2,12 +2,12 @@ import { toZh } from './utils.js';
 
 'use strict';
 // ===== Constants =====
-const CANVAS_SIDE = 350; // 280;        // larger canvas for better drawing
+const CANVAS_SIDE = 420; // 280;        // larger canvas for better drawing
 const TIME_LIMIT_SEC = 20;
 const TIME_LIMIT_MS = TIME_LIMIT_SEC * 1000;
 const TOP_SHOW = 3;
 const NUM_ROUNDS = 6;
-const BRUSH_WEIGHT = 12.5; //10;
+const BRUSH_WEIGHT = 15; //10;
 const API_BASE = window.CONFIG.API_BASE;
 
 // ===== State =====
