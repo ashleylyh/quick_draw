@@ -608,7 +608,7 @@ async function generateQRCode(sessionData, drawingsData) {
         
         // Add timestamp information if available
         if (createdAt && qrTimestamp) {
-            const timestamp = new Date(createdAt).toLocaleString('zh-TW');
+            const timestamp = formatTimestamp(createdAt);
             qrTimestamp.textContent = `建立時間: ${timestamp}`;
             qrTimestamp.style.display = 'block';
         }
