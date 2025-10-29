@@ -3,11 +3,12 @@ import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import redis
+import os
 
 class DataFetcher:
     """Handles data fetching from Redis and backend API for the dashboard"""
     
-    def __init__(self, backend_url: str = "http://localhost:8000"):
+    def __init__(self, backend_url: str = "http://140.109.74.39:8088/"):
         self.backend_url = backend_url.rstrip('/')
         self.redis_client = None
         self._init_redis()
@@ -15,9 +16,6 @@ class DataFetcher:
     def _init_redis(self):
         """Initialize Redis connection"""
         try:
-            import redis
-            import os
-            
             # Use environment variables if available (for Docker), otherwise use localhost
             redis_host = os.getenv('REDIS_HOST', 'localhost')
             redis_port = int(os.getenv('REDIS_PORT', '6379'))
@@ -38,8 +36,13 @@ class DataFetcher:
         except:
             return False
     
-    def get_all_sessions(self) -> List[Dict[str, Any]]:
-        """Fetch all game sessions from Redis"""
+    def get_all_sessions(self, filter_complete: bool = True, required_games: int = 6) -> List[Dict[str, Any]]:
+        """Fetch all game sessions from Redis
+        
+        Args:
+            filter_complete: If True, only return sessions with exactly required_games
+            required_games: Number of games required for a complete session
+        """
         if not self.redis_client:
             return []
         
@@ -64,6 +67,12 @@ class DataFetcher:
                             drawings = self.get_session_drawings(session_id)
                             session_data['drawings'] = drawings
                             session_data['total_score'] = self.calculate_session_score(drawings)
+                            
+                            # Apply filter if requested
+                            if filter_complete:
+                                games_played = len(drawings)
+                                if games_played != required_games:
+                                    continue  # Skip this session if it doesn't have the required number of games
                         
                         sessions.append(session_data)
             # print(f"[DEBUG] Fetched {len(sessions)} sessions from Redis")
@@ -167,8 +176,29 @@ class DataFetcher:
         
         return filtered
     
-    def get_ranking_data(self, sessions: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """Get ranking data organized by difficulty"""
+    def filter_complete_sessions(self, sessions: List[Dict[str, Any]], required_games: int = 6) -> List[Dict[str, Any]]:
+        """Filter sessions to only include those with exactly the required number of games played"""
+        complete_sessions = []
+        
+        for session in sessions:
+            drawings = session.get('drawings', [])
+            games_played = len(drawings)
+            
+            # Only include sessions with exactly the required number of games played
+            if games_played == required_games:
+                complete_sessions.append(session)
+        
+        return complete_sessions
+    
+    def get_ranking_data(self, sessions: List[Dict[str, Any]] = None) -> Dict[str, List[Dict[str, Any]]]:
+        """Get ranking data organized by difficulty, only including complete sessions (6 games)"""
+        # If no sessions provided, get all complete sessions
+        if sessions is None:
+            sessions = self.get_all_sessions(filter_complete=True)
+        else:
+            # Filter provided sessions for complete ones
+            sessions = self.filter_complete_sessions(sessions)
+        
         rankings = {'easy': [], 'hard': []}
         
         for session in sessions:
@@ -179,6 +209,7 @@ class DataFetcher:
                     'total_score': session.get('total_score', 0),
                     'games_played': len(session.get('drawings', [])),
                     'timestamp': session.get('timestamp', ''),
+                    'session_id': session.get('session_id', ''),
                     'age': session.get('age', 0),
                     'gender': session.get('gender', 'Unknown')
                 }
@@ -190,8 +221,15 @@ class DataFetcher:
         
         return rankings
     
-    def get_score_distribution(self, sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Get score distribution data for histogram"""
+    def get_score_distribution(self, sessions: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Get score distribution data for histogram, only including complete sessions (6 games)"""
+        # If no sessions provided, get all complete sessions
+        if sessions is None:
+            sessions = self.get_all_sessions(filter_complete=True)
+        else:
+            # Filter provided sessions for complete ones
+            sessions = self.filter_complete_sessions(sessions)
+        
         scores_by_difficulty = {'easy': [], 'hard': []}
         
         for session in sessions:

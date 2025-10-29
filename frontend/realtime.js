@@ -109,7 +109,7 @@ class RealTimeManager {
                 break;
                 
             default:
-                console.log('Unknown WebSocket message type:', data.type);
+                // console.log('Unknown WebSocket message type:', data.type);
         }
     }
     
@@ -133,7 +133,7 @@ class RealTimeManager {
     
     // Handle connection statistics updates
     handleConnectionStats(stats) {
-        console.log('Connection stats received:', stats);
+        // console.log('Connection stats received:', stats);
         
         // Update connection indicator if available
         if (window.connectionIndicator && stats) {
@@ -193,7 +193,7 @@ class RealTimeManager {
     // Schedule reconnection attempt
     scheduleReconnect() {
         this.reconnectAttempts++;
-        console.log(`Scheduling WebSocket reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectDelay}ms`);
+        // console.log(`Scheduling WebSocket reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${this.reconnectDelay}ms`);
         
         setTimeout(() => {
             if (this.sessionId) {
@@ -227,7 +227,7 @@ class RealTimeManager {
             this.eventSource = new EventSource(`${window.CONFIG.BACKEND_URL}/events`);
             
             this.eventSource.onopen = () => {
-                console.log('SSE connection established');
+                // console.log('SSE connection established');
             };
             
             this.eventSource.onmessage = (event) => {

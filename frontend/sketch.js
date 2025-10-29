@@ -96,7 +96,7 @@ function initializeRealTime() {
     // Connect to SSE for general events
     realTimeManager.connectSSE();
     
-    console.log('Real-time features initialized');
+    // console.log('Real-time features initialized');
   } else {
     console.warn('Real-time features not available, falling back to polling');
   }
@@ -104,7 +104,7 @@ function initializeRealTime() {
 
 // Handle real-time game events
 function handleGameEvent(event) {
-  console.log('Received game event:', event);
+  // console.log('Received game event:', event);
   
   switch (event.event_type) {
     case 'game_session_completed':
@@ -130,7 +130,7 @@ function handleConnectionChange(connected) {
 // Update connection status indicator
 function updateConnectionStatus() {
   // This will be handled by the connection indicator in realtime.js
-  console.log(`Real-time connection: ${realTimeConnected ? 'Connected' : 'Disconnected'}`);
+  // console.log(`Real-time connection: ${realTimeConnected ? 'Connected' : 'Disconnected'}`);
 }
 
 // Show notification to user

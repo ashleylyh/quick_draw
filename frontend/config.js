@@ -16,7 +16,12 @@ const getBackendUrl = () => {
     
     // Try to get from current host (for production deployment)
     if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        // Use environment variable for backend port, fallback to 8000
+        // If accessing via ngrok or similar tunnel, use the same ngrok URL for backend
+        // since both frontend and backend are served through the same ngrok tunnel via nginx proxy
+        if (window.location.hostname.includes('ngrok') || window.location.hostname.includes('tunnel')) {
+            return `${window.location.protocol}//${window.location.hostname}`;
+        }
+        // For true production deployment where backend is also public
         const backendPort = window.BACKEND_PORT || '8000';
         return `${window.location.protocol}//${window.location.hostname}:${backendPort}`;
     }

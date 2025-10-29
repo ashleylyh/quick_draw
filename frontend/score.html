@@ -4,10 +4,16 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>QuickDraw 成績</title>
     <link rel="stylesheet" href="score_style.css">
     <link rel="shortcut icon" type="image/x-icon" href="./assets/favicon.png">
+    
+    <!-- Environment Variables (Docker) -->
+    <script src="./env-inject.js"></script>
     
     <!-- Configuration -->
     <script src="./config.js"></script>
@@ -58,6 +64,15 @@
                         <div class="total-time-display" id="totalTimeDisplay">
                             <span class="time-value" id="totalTimeValue">計算中...</span>
                             <span class="time-label">秒</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 排名區塊 -->
+                    <div class="total-ranking-section" id="totalRankingSection">
+                        <h2>排名 Ranking</h2>
+                        <div class="total-ranking-display" id="totalRankingDisplay">
+                            <span class="ranking-value" id="totalRankingValue">載入中...</span>
+                            <span class="ranking-label">名</span>
                         </div>
                     </div>
                 </div>

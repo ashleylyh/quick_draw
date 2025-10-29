@@ -17,6 +17,7 @@ CLASSES_PATH = os.getenv('CLASSES_PATH', './classes.json')
 API_CLIENT = os.getenv('API_CLIENT', 'localhost:8000')
 FRONTEND_CLIENT = os.getenv('FRONTEND_CLIENT', 'http://localhost:3030')
 DASHBOARD_CLIENT = os.getenv('DASHBOARD_CLIENT', 'http://localhost:8501')
+PUBLIC_FRONTEND_URL = os.getenv('PUBLIC_FRONTEND_URL', '').strip()
 
 # Redis Configuration
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -32,6 +33,18 @@ FILE_UMAP_REDUCER = os.getenv('FILE_UMAP_REDUCER', './feature/background_Umap_to
 MAX_BG_SAMPLES_PER_CLASS = int(os.getenv('MAX_BG_SAMPLES_PER_CLASS', '500'))
 
 # CORS Configuration
+def _parse_csv_env(env_key: str, default: str = ""):
+	"""Split a comma-separated environment variable into a list."""
+	raw_value = os.getenv(env_key, default)
+	if raw_value is None:
+		raw_value = default
+	raw_value = raw_value.strip()
+	if not raw_value:
+		return []
+	if raw_value == '*':
+		return ['*']
+	return [item.strip() for item in raw_value.split(',') if item.strip()]
+
 CORS_ENABLED = os.getenv('CORS_ENABLED', 'true').lower() == 'true'
 # Handle CORS origins - support both comma-separated list and wildcard
 cors_origins_env = os.getenv('CORS_ALLOWED_ORIGINS', f'{FRONTEND_CLIENT},{DASHBOARD_CLIENT}')
