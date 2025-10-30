@@ -16,7 +16,6 @@ class PlottingAPI:
         """
         Initialize plotting API.
         """
-        # self.redis_expire_sec = redis_expire_sec
         self.redis_client = get_redis()
     
     def create_umap_plot(
@@ -88,7 +87,6 @@ class PlottingAPI:
             }
             
             self.redis_client.hset(metadata_key, mapping=metadata)
-            # self.redis_client.expire(metadata_key, self.redis_expire_sec)
             
             return {
                 "status": "success",
@@ -138,7 +136,6 @@ class PlottingAPI:
             if result["status"] == "success":
                 # Store in Redis
                 self.redis_client.set(redis_key, result["image_base64"])
-                # self.redis_client.expire(redis_key, self.redis_expire_sec)
 
                 # Store metadata
                 metadata_key = f"radar_metadata:{session_id}"
@@ -150,7 +147,6 @@ class PlottingAPI:
                 }
                 
                 self.redis_client.hset(metadata_key, mapping=metadata)
-                # self.redis_client.expire(metadata_key, self.redis_expire_sec)
                 
                 return {
                     "status": "success",

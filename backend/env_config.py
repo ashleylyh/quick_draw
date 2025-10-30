@@ -32,6 +32,9 @@ FILE_UMAP_REDUCER = os.getenv('FILE_UMAP_REDUCER', './feature/background_Umap_to
 # ML Configuration
 MAX_BG_SAMPLES_PER_CLASS = int(os.getenv('MAX_BG_SAMPLES_PER_CLASS', '500'))
 
+# Plot Storage Configuration
+PLOT_EXPIRE_SEC = int(os.getenv('PLOT_EXPIRE_SEC', '0'))  # 0 = no expiration
+
 # CORS Configuration
 def _parse_csv_env(env_key: str, default: str = ""):
 	"""Split a comma-separated environment variable into a list."""

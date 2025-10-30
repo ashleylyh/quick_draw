@@ -31,7 +31,7 @@ MAX_SESSIONS_PER_PAGE = int(os.getenv("MAX_SESSIONS_PER_PAGE", "100"))
 MAX_RANKINGS_DISPLAY = int(os.getenv("MAX_RANKINGS_DISPLAY", "100"))
 
 # Cache settings
-CACHE_TTL = int(os.getenv("CACHE_TTL", "300"))
+CACHE_TTL = int(os.getenv("CACHE_TTL", "0"))  # 0 = no expiration
 
 # Configuration dictionary (for backward compatibility)
 CONFIG = {

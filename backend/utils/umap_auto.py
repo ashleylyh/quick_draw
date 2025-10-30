@@ -11,6 +11,7 @@ import base64
 import io
 from utils.redis_utils import get_redis
 from utils.plot_utils import get_class_label_map
+from env_config import PLOT_EXPIRE_SEC
 
 ArrayLike = Union[np.ndarray, pd.DataFrame, Sequence[Sequence[float]]]
 
@@ -284,7 +285,7 @@ class UMAPPlotter:
         fig: plt.Figure,
         redis_key: str,
         dpi: int = 200,
-        expire_sec: int = 3600
+        expire_sec: Optional[int] = None
     ) -> str:
         """
         Save plot to Redis as base64 encoded image.
@@ -317,7 +318,11 @@ class UMAPPlotter:
         
         # Store in Redis
         redis_client = get_redis()
-        redis_client.set(redis_key, image_base64, ex=expire_sec)
+        expire_time = expire_sec if expire_sec is not None else PLOT_EXPIRE_SEC
+        if expire_time > 0:
+            redis_client.set(redis_key, image_base64, ex=expire_time)
+        else:
+            redis_client.set(redis_key, image_base64)
         
         return image_base64
 
