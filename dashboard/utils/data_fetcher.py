@@ -1,4 +1,3 @@
-import requests
 import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
@@ -6,10 +5,9 @@ import redis
 import os
 
 class DataFetcher:
-    """Handles data fetching from Redis and backend API for the dashboard"""
+    """Handles data fetching from Redis for the dashboard"""
     
-    def __init__(self, backend_url: str = "http://140.109.74.39:8088/"):
-        self.backend_url = backend_url.rstrip('/')
+    def __init__(self):
         self.redis_client = None
         self._init_redis()
     
@@ -20,8 +18,15 @@ class DataFetcher:
             redis_host = os.getenv('REDIS_HOST', 'localhost')
             redis_port = int(os.getenv('REDIS_PORT', '6379'))
             redis_db = int(os.getenv('REDIS_DB', '0'))
+            redis_password = os.getenv('REDIS_PASSWORD', '')
             
-            self.redis_client = redis.Redis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+            self.redis_client = redis.Redis(
+                host=redis_host, 
+                port=redis_port, 
+                db=redis_db, 
+                password=redis_password if redis_password else None,
+                decode_responses=True
+            )
             # Test connection
             self.redis_client.ping()
         except Exception as e:
@@ -29,10 +34,12 @@ class DataFetcher:
             self.redis_client = None
     
     def check_connection(self) -> bool:
-        """Check if backend API is accessible"""
+        """Check if Redis connection is available"""
         try:
-            response = requests.get(f"{self.backend_url}/api/health", timeout=5)
-            return response.status_code == 200
+            if self.redis_client:
+                self.redis_client.ping()
+                return True
+            return False
         except:
             return False
     
@@ -239,3 +246,75 @@ class DataFetcher:
                 scores_by_difficulty[difficulty].append(score)
         
         return scores_by_difficulty
+    
+    def get_high_score_drawings(self, sessions: List[Dict[str, Any]] = None, 
+                              difficulty_filter: str = None, limit: int = 6) -> List[Dict[str, Any]]:
+        """Get most recent players' drawings data with random drawing selection"""
+        if not self.redis_client:
+            return []
+            
+        try:
+            # If no sessions provided, get all sessions directly from Redis
+            if sessions is None:
+                sessions = self.get_all_sessions(filter_complete=False)  # Include all sessions
+            
+            # Filter by difficulty if specified
+            if difficulty_filter and difficulty_filter != 'all':
+                sessions = [s for s in sessions if s.get('difficulty') == difficulty_filter]
+            
+            # Sort by timestamp (most recent first) and get recent sessions
+            sessions_with_drawings = []
+            
+            for session in sessions:
+                drawings = session.get('drawings', [])
+                if drawings:  # Only include sessions with drawings
+                    sessions_with_drawings.append(session)
+            
+            # Sort by timestamp (most recent first)
+            sessions_with_drawings.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+            
+            # Take the most recent sessions up to the limit
+            recent_sessions = sessions_with_drawings[:limit]
+            
+            # Prepare drawing data with sequential selection
+            recent_drawings = []
+            
+            for player_idx, session in enumerate(recent_sessions):
+                drawings = session.get('drawings', [])
+                if not drawings:
+                    continue
+                
+                # Select drawing sequentially: player 1 gets drawing 1, player 2 gets drawing 2, etc.
+                drawing_idx = player_idx % len(drawings)  # Wrap around if not enough drawings
+                selected_drawing = drawings[drawing_idx]
+                
+                predictions = selected_drawing.get('predictions', {})
+                prompt = selected_drawing.get('prompt', '')
+                
+                # Calculate score for this drawing
+                score = 0
+                if prompt in predictions:
+                    score = predictions[prompt] * 100
+                
+                # Get image data - try both keys for compatibility
+                image_data = selected_drawing.get('original_image_data', '') or selected_drawing.get('image_base64', '')
+                
+                recent_drawings.append({
+                    'session_id': session.get('session_id', ''),
+                    'player_name': session.get('player_name', 'Unknown'),
+                    'difficulty': session.get('difficulty', ''),
+                    'total_session_score': session.get('total_score', 0),
+                    'score': score,
+                    'prompt': selected_drawing.get('prompt', ''),
+                    'time_spent_sec': selected_drawing.get('time_spent_sec', 0),
+                    'image_data': image_data,
+                    'predictions': selected_drawing.get('predictions', {}),
+                    'round': selected_drawing.get('round', 0),
+                    'timestamp': session.get('timestamp', '')
+                })
+            
+            return recent_drawings
+            
+        except Exception as e:
+            print(f"Error fetching recent drawings from Redis: {e}")
+            return []

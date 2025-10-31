@@ -244,3 +244,109 @@ async def get_recent_activity(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Recent activity retrieval failed: {str(e)}")
+
+@router.get("/api/dashboard/high-score-drawings")
+async def get_high_score_drawings(
+    difficulty: Optional[str] = Query(None, description="Filter by difficulty (easy/hard)"),
+    limit: Optional[int] = Query(20, description="Maximum number of drawings to return")
+):
+    """Get high score players' drawings for the dashboard"""
+    try:
+        r = get_redis()
+        
+        # Get all session keys
+        session_keys = r.keys("session:*")
+        session_scores = []
+        
+        for key in session_keys:
+            if ":drawings" not in key and ":qr_code" not in key:
+                session_data = r.hgetall(key)
+                if session_data:
+                    session_difficulty = session_data.get('difficulty', '')
+                    
+                    # Filter by difficulty if specified
+                    if difficulty and session_difficulty != difficulty:
+                        continue
+                    
+                    # Get session drawings and calculate total score
+                    session_id = session_data.get('session_id')
+                    if session_id:
+                        drawing_ids = r.lrange(f"session:{session_id}:drawings", 0, -1)
+                        total_score = 0.0
+                        drawings = []
+                        
+                        for drawing_id in drawing_ids:
+                            drawing_data = r.hgetall(drawing_id)
+                            if drawing_data:
+                                # Parse predictions and calculate score
+                                predictions_str = drawing_data.get('predictions', '{}')
+                                try:
+                                    predictions = json.loads(predictions_str)
+                                    prompt = drawing_data.get('prompt', '')
+                                    if prompt in predictions:
+                                        score = predictions[prompt] * 100
+                                        total_score += score
+                                        
+                                        # Get image data - try both keys for compatibility
+                                        image_data = drawing_data.get('original_image_data', '') or drawing_data.get('image_base64', '')
+                                        
+                                        # Debug: Log image data info
+                                        print(f"[DEBUG] Drawing {drawing_id}: image_data length = {len(image_data)}")
+                                        
+                                        # Store drawing with score for potential return
+                                        drawings.append({
+                                            'prompt': prompt,
+                                            'score': score,
+                                            'time_spent_sec': float(drawing_data.get('time_spent_sec', 0)),
+                                            'image_data': image_data,
+                                            'predictions': predictions,
+                                            'round': int(drawing_data.get('round', 0))
+                                        })
+                                except (json.JSONDecodeError, KeyError, TypeError) as e:
+                                    print(f"[DEBUG] Error parsing drawing {drawing_id}: {e}")
+                                    continue
+                        
+                        if drawings:  # Only include sessions with valid drawings
+                            session_scores.append({
+                                'session_id': session_id,
+                                'player_name': session_data.get('player_name', 'Unknown'),
+                                'difficulty': session_difficulty,
+                                'total_score': round(total_score, 2),
+                                'drawings': drawings,
+                                'timestamp': session_data.get('timestamp', '')
+                            })
+        
+        # Sort by total score (highest first)
+        session_scores.sort(key=lambda x: x['total_score'], reverse=True)
+        
+        # Prepare response data - include individual high-scoring drawings
+        high_score_drawings = []
+        for session in session_scores[:limit]:
+            # Add the best drawing from each top session
+            best_drawing = max(session['drawings'], key=lambda x: x['score'], default=None)
+            if best_drawing:
+                high_score_drawings.append({
+                    'session_id': session['session_id'],
+                    'player_name': session['player_name'],
+                    'difficulty': session['difficulty'],
+                    'total_session_score': session['total_score'],
+                    'score': best_drawing['score'],
+                    'prompt': best_drawing['prompt'],
+                    'time_spent_sec': best_drawing['time_spent_sec'],
+                    'image_data': best_drawing['image_data'],
+                    'predictions': best_drawing['predictions'],
+                    'round': best_drawing['round'],
+                    'timestamp': session['timestamp']
+                })
+        
+        return {
+            "status": "success",
+            "drawings": high_score_drawings[:limit],
+            "total_sessions": len(session_scores),
+            "filtered_by_difficulty": difficulty,
+            "returned_count": len(high_score_drawings[:limit])
+        }
+        
+    except Exception as e:
+        print(f"Error fetching high score drawings: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching high score drawings: {str(e)}")

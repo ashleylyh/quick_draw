@@ -25,6 +25,46 @@ class BaseTab(ABC):
         self.label_map = {'easy': '簡單', 'hard': '困難'}
         self.label_gender_map = {'male': '男生', 'female': '女生', 'Other': '其他'}
         
+        # Class name translations (English to Chinese)
+        self.class_translation_map = {
+            'fish': '魚',
+            'eyeglasses': '眼鏡',
+            'camel': '駱駝',
+            'see_saw': '翹翹板',
+            'bicycle': '腳踏車',
+            'shark': '鯊魚',
+            'palm_tree': '棕櫚樹',
+            'hot_air_balloon': '熱氣球',
+            'lollipop': '棒棒糖',
+            'mushroom': '蘑菇',
+            'umbrella': '雨傘',
+            'penguin': '企鵝',
+            'tree': '樹',
+            'spider': '蜘蛛',
+            'octopus': '章魚',
+            'hedgehog': '刺蝟',
+            'campfire': '營火',
+            'crab': '螃蟹',
+            'helicopter': '直升機',
+            'ambulance': '救護車',
+            'police_car': '警車',
+            'car': '汽車',
+            'truck': '卡車',
+            'bus': '公車',
+            'radio': '收音機',
+            'map': '地圖',
+            'envelope': '信封',
+            'camera': '相機',
+            'calculator': '計算機',
+            'laptop': '筆記型電腦',
+            'clock': '時鐘',
+            'donut': '甜甜圈',
+            'wheel': '輪子',
+            'ice_cream': '冰淇淋',
+            'apple': '蘋果',
+            'strawberry': '草莓'
+        }
+        
         # Multilingual text
         self.texts = {
             'zh': {
@@ -81,7 +121,23 @@ class BaseTab(ABC):
                 'top_score': '最高分數',
                 'score_range': '分數範圍',
                 'age_range':'各年齡層平均分數（每5歲）',
-                'qq_plot': 'Q-Q 圖: 實際分數 vs 理論分佈'
+                'qq_plot': 'Q-Q 圖: 實際分數 vs 理論分佈',
+                # Drawings tab translations
+                'high_score_drawings': '高分玩家繪圖',
+                'drawing': '繪圖', 
+                'prompt': '繪圖題目',
+                'time_spent': '繪圖時間',
+                'prediction_confidence': '預測信心度',
+                # 'top_players': '頂尖玩家',
+                'select_difficulty': '選擇難度',
+                'all_difficulties': '所有難度',
+                'no_drawings_found': '找不到繪圖數據',
+                'loading_drawings': '載入繪圖數據中...',
+                'seconds': '秒',
+                'view_details': '查看詳情',
+                'drawing_analysis': '繪圖分析',
+                'ai_prediction': 'AI預測',
+                'actual_prompt': '實際題目'
             },
             'en': {
                 'no_data': "No data available for the selected filters.",
@@ -137,7 +193,23 @@ class BaseTab(ABC):
                 'top_score': 'Top Score',
                 'score_range': 'Score Range',
                 'age_range': 'Average Score by Age Group (5-year gap)',
-                'qq_plot': 'Q-Q Plot: Actual Scores vs Theoretical Distribution'
+                'qq_plot': 'Q-Q Plot: Actual Scores vs Theoretical Distribution',
+                # Drawings tab translations
+                'high_score_drawings': 'High Score Players\' Drawings',
+                'drawing': 'Drawing', 
+                'prompt': 'Prompt',
+                'time_spent': 'Time Spent',
+                'prediction_confidence': 'Prediction Confidence',
+                # 'top_players': 'Top Players',
+                'select_difficulty': 'Select Difficulty',
+                'all_difficulties': 'All Difficulties',
+                'no_drawings_found': 'No drawings found',
+                'loading_drawings': 'Loading drawings...',
+                'seconds': 'seconds',
+                'view_details': 'View Details',
+                'drawing_analysis': 'Drawing Analysis',
+                'ai_prediction': 'AI Prediction', 
+                'actual_prompt': 'Actual Prompt'
             }
         }
         
@@ -156,6 +228,12 @@ class BaseTab(ABC):
         if self.language == 'en':
             return {'male': 'Male', 'female': 'Female', 'Other': 'Other'}.get(gender, gender)
         return self.label_gender_map.get(gender, gender)
+    
+    def get_class_translation(self, class_name: str) -> str:
+        """Get class name translation based on current language"""
+        if self.language == 'zh':
+            return self.class_translation_map.get(class_name, class_name)
+        return class_name  # Return original name for English
     
     def get_difficulty_color_map(self) -> Dict[str, str]:
         """Get color mapping for difficulties based on current language"""

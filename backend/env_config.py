@@ -23,6 +23,7 @@ PUBLIC_FRONTEND_URL = os.getenv('PUBLIC_FRONTEND_URL', '').strip()
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
 REDIS_DB = int(os.getenv('REDIS_DB', '0'))
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
 
 # File Paths
 FILE_EMB_5 = os.getenv('FILE_EMB_5', './feature/background_embedding_5per_class.csv')

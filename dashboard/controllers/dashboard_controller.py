@@ -8,6 +8,8 @@ from utils.data_fetcher import DataFetcher
 from components.overview_tab import OverviewTab
 from components.rankings_tab import RankingsTab
 from components.score_analysis_tab import ScoreAnalysisTab
+from components.drawings_tab import DrawingsTab
+from env_config import AUTO_REFRESH_INTERVAL
 
 
 class DashboardController:
@@ -16,14 +18,14 @@ class DashboardController:
     def __init__(self):
         # Use environment variable for backend URL (for Docker compatibility)
         import os
-        self.backend_url = os.getenv("QUICKDRAW_BACKEND_URL", "http://http://140.109.74.39:8088/")
-        self.data_fetcher = DataFetcher(backend_url=self.backend_url)
+        self.backend_url = os.getenv("QUICKDRAW_BACKEND_URL", "http://localhost:8000")
+        self.data_fetcher = DataFetcher()
         
         # Initialize session state for language if not exists
         if 'language' not in st.session_state:
             st.session_state.language = 'zh'  # Default to Chinese
-        self.view_names = ["📊 概覽 Overview", "🏆 玩家排行榜 Rankings", "📈 分數分析 Score Analysis"]
-        self.tab_classes = [OverviewTab, RankingsTab, ScoreAnalysisTab]
+        self.view_names = ["📊 概覽 Overview", "🏆 玩家排行榜 Rankings", "📈 分數分析 Score Analysis", "🎨 精彩繪圖 Drawings"]
+        self.tab_classes = [OverviewTab, RankingsTab, ScoreAnalysisTab, DrawingsTab]
         
         # Initialize session state
         self._init_session_state()
@@ -38,6 +40,57 @@ class DashboardController:
             st.session_state.previous_view = 0
         if 'main_placeholder' not in st.session_state:
             st.session_state.main_placeholder = None
+        if 'last_connection_check' not in st.session_state:
+            st.session_state.last_connection_check = datetime.now()
+        if 'connection_status' not in st.session_state:
+            st.session_state.connection_status = 'unknown'
+        if 'reconnect_attempts' not in st.session_state:
+            st.session_state.reconnect_attempts = 0
+    
+    def _handle_connection_with_reconnect(self) -> bool:
+        """Handle backend connection with auto-reconnect functionality"""
+        current_time = datetime.now()
+        
+        # Check if we need to verify connection (every 5 seconds or on first run)
+        time_since_check = (current_time - st.session_state.last_connection_check).total_seconds()
+        
+        if st.session_state.connection_status == 'unknown' or time_since_check >= 5:
+            # Test connection
+            is_connected = self.data_fetcher.check_connection()
+            st.session_state.last_connection_check = current_time
+            
+            if is_connected:
+                if st.session_state.connection_status == 'disconnected':
+                    # Reconnected successfully
+                    st.sidebar.success("✅ Reconnected to backend 重新連接到後端")
+                    st.session_state.reconnect_attempts = 0
+                elif st.session_state.connection_status == 'unknown':
+                    # First successful connection
+                    st.sidebar.success("✅ Connected to backend 已連接到後端")
+                st.session_state.connection_status = 'connected'
+                return True
+            else:
+                if st.session_state.connection_status != 'disconnected':
+                    # First disconnection
+                    st.session_state.reconnect_attempts = 0
+                
+                st.session_state.connection_status = 'disconnected'
+                st.session_state.reconnect_attempts += 1
+                
+                # Show reconnection status
+                remaining_time = max(0, 5 - int(time_since_check))
+                st.sidebar.error(f"❌ Backend disconnected. Retrying in {remaining_time}s... (Attempt #{st.session_state.reconnect_attempts}) 後端斷線，{remaining_time}秒後重試...")
+                
+                # Auto-retry after 5 seconds by forcing a rerun
+                if time_since_check >= 5:
+                    import time
+                    time.sleep(0.5)  # Small delay to prevent rapid reruns
+                    st.rerun()
+                
+                return False
+        
+        # Return cached status if not time to check yet
+        return st.session_state.connection_status == 'connected'
     
     def render_sidebar(self) -> Dict[str, Any]:
         """Render sidebar controls and return configuration"""
@@ -81,12 +134,17 @@ class DashboardController:
         #     self.backend_url = backend_url
         #     self.data_fetcher = DataFetcher(backend_url)
         
-        # Check backend connection
-        if not self.data_fetcher.check_connection():
-            st.error("❌ Cannot connect to backend. Please check the backend URL and ensure the server is running. 無法連接到後端，請檢查後端網址並確保伺服器正在運行。")
-            st.stop()
-        
-        st.sidebar.success("✅ Connected to backend 已連接到後端")
+        # Check backend connection with auto-reconnect
+        if not self._handle_connection_with_reconnect():
+            # If not connected, show simplified interface and return early
+            st.warning("⏳ Waiting for backend connection... 等待後端連接...")
+            return {
+                'time_range': "All time",
+                'difficulty_filter': ["easy", "hard"],
+                'auto_refresh': False,
+                'auto_switch_tabs': False,
+                'switch_interval': 10
+            }
         
         # Time range filter
         time_range = st.sidebar.selectbox(
@@ -102,13 +160,13 @@ class DashboardController:
             default=["easy", "hard"]
         )
         
-        # Auto-refresh option
-        auto_refresh = st.sidebar.checkbox("Auto-refresh (30s) 自動刷新 (30秒)", value=False)
+        # Auto-refresh option (uses configured AUTO_REFRESH_INTERVAL)
+        auto_refresh = st.sidebar.checkbox(f"Auto-refresh ({AUTO_REFRESH_INTERVAL}s) 自動刷新 ({AUTO_REFRESH_INTERVAL}秒)", value=False)
         if auto_refresh:
-            st.sidebar.info("Dashboard will refresh every 30 seconds 儀表板將每30秒刷新一次")
+            st.sidebar.info(f"Dashboard will refresh every {AUTO_REFRESH_INTERVAL} seconds 儀表板將每{AUTO_REFRESH_INTERVAL}秒刷新一次")
         
         # Auto tab switching option
-        auto_switch_tabs = st.sidebar.checkbox("Auto-switch views (10s) 自動切換頁面 (10秒)", value=False)
+        auto_switch_tabs = st.sidebar.checkbox("Auto-switch views 自動切換頁面", value=False)
         switch_interval = st.sidebar.slider("Switch interval (seconds) 切換間隔(秒)", 5, 30, 10)
         
         if auto_switch_tabs:
@@ -137,7 +195,7 @@ class DashboardController:
             
             # Update view tracking
             st.session_state.previous_view = st.session_state.current_view
-            st.session_state.current_view = (st.session_state.current_view + 1) % 3
+            st.session_state.current_view = (st.session_state.current_view + 1) % 4
             st.session_state.last_switch_time = current_time
             
             # Force rerun to refresh the display
@@ -262,7 +320,7 @@ class DashboardController:
                 tab_instance.render()
         else:
             # Manual mode: show traditional tabs with proper isolation
-            tab1, tab2, tab3 = st.tabs(["📊 概覽 Overview", "🏆 玩家排行榜 Rankings", "📈 分數分析 Score Analysis"])
+            tab1, tab2, tab3, tab4 = st.tabs(["📊 概覽 Overview", "🏆 玩家排行榜 Rankings", "📈 分數分析 Score Analysis", "🎨 精彩繪圖 Drawings"])
             
             with tab1:
                 # Generate unique cache key for overview tab
@@ -287,6 +345,14 @@ class DashboardController:
                 
                 score_analysis_tab = ScoreAnalysisTab(data, current_language)
                 score_analysis_tab.render()
+            
+            with tab4:
+                # Generate unique cache key for drawings tab
+                drawings_cache_key = f"drawings_{current_language}_{id(st.session_state)}"
+                st.session_state[f'{drawings_cache_key}_active'] = True
+                
+                drawings_tab = DrawingsTab(data, current_language)
+                drawings_tab.render()
     
     def handle_auto_refresh(self, config: Dict[str, Any]):
         """Handle auto-refresh logic"""
@@ -295,7 +361,7 @@ class DashboardController:
         
         if auto_refresh or auto_switch_tabs:
             import time
-            
+
             # Only clear cache if we're switching tabs, not just refreshing
             if auto_switch_tabs:
                 # The cache clearing is handled in _handle_auto_switching
@@ -303,9 +369,12 @@ class DashboardController:
             elif auto_refresh:
                 # For regular refresh, only clear data caches, not UI state
                 self._clear_data_caches_only()
-            
-            # Use a shorter sleep for more responsive switching
-            time.sleep(1)
+
+            # Sleep according to the enabled mode:
+            # - auto_switch_tabs: short sleep to keep UI responsive (switching handled by _handle_auto_switching)
+            # - auto_refresh: sleep for configured AUTO_REFRESH_INTERVAL seconds between refreshes
+            sleep_duration = 1 if auto_switch_tabs else max(int(AUTO_REFRESH_INTERVAL), 1)
+            time.sleep(sleep_duration)
             st.rerun()
     
     def _clear_data_caches_only(self):
