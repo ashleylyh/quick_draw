@@ -14,7 +14,7 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 REDIS_DB = int(os.getenv("REDIS_DB", "0"))
 
 # Dashboard settings
-AUTO_REFRESH_INTERVAL = int(os.getenv("AUTO_REFRESH_INTERVAL", "30"))
+AUTO_REFRESH_INTERVAL = int(os.getenv("AUTO_REFRESH_INTERVAL", "15"))
 MAX_PLAYERS_IN_CHARTS = int(os.getenv("MAX_PLAYERS_IN_CHARTS", "20"))
 DEFAULT_TIME_RANGE = os.getenv("DEFAULT_TIME_RANGE", "All time")
 
