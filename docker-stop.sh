@@ -25,26 +25,40 @@ fi
 
 # Function to check if docker-compose is available
 check_docker_compose() {
+    COMPOSE_IS_LEGACY=false
     if docker compose version >/dev/null 2>&1; then
-        COMPOSE_CMD="docker compose"
+        COMPOSE_CMD=(docker compose)
     elif command -v docker-compose >/dev/null 2>&1; then
-        COMPOSE_CMD="docker-compose"
+        COMPOSE_CMD=(docker-compose)
+        COMPOSE_IS_LEGACY=true
     else
         echo -e "${RED}❌ Neither docker-compose nor 'docker compose' is available${NC}"
         exit 1
     fi
-    echo -e "${GREEN}✅ Using $COMPOSE_CMD${NC}"
+    echo -e "${GREEN}✅ Using ${COMPOSE_CMD[*]}${NC}"
+
+    if [ "$COMPOSE_IS_LEGACY" = true ]; then
+        echo -e "${YELLOW}⚠️  Legacy docker-compose detected; enabling compatibility mode (PYTHONNOUSERSITE=1).${NC}"
+    fi
+}
+
+compose() {
+    if [ "$COMPOSE_IS_LEGACY" = true ]; then
+        PYTHONNOUSERSITE=1 "${COMPOSE_CMD[@]}" "$@"
+    else
+        "${COMPOSE_CMD[@]}" "$@"
+    fi
 }
 
 check_docker_compose
 
 # Stop all services
 echo -e "${YELLOW}🛑 Stopping all services...${NC}"
-$COMPOSE_CMD down
+compose down
 
 # Optional: Remove volumes (uncomment if you want to clear Redis data)
 # echo -e "${YELLOW}🗑️  Removing volumes...${NC}"
-# $COMPOSE_CMD down -v
+# compose down -v
 
 echo -e "${GREEN}✅ All QuickDraw Docker services stopped${NC}"
 

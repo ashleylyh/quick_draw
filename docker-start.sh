@@ -38,21 +38,35 @@ check_docker() {
 
 # Function to check if docker-compose is available
 check_docker_compose() {
+    COMPOSE_IS_LEGACY=false
     if docker compose version >/dev/null 2>&1; then
-        COMPOSE_CMD="docker compose"
+        COMPOSE_CMD=(docker compose)
     elif command -v docker-compose >/dev/null 2>&1; then
-        COMPOSE_CMD="docker-compose"
+        COMPOSE_CMD=(docker-compose)
+        COMPOSE_IS_LEGACY=true
     else
         echo -e "${RED}❌ Neither docker-compose nor 'docker compose' is available${NC}"
         exit 1
     fi
-    echo -e "${GREEN}✅ Using $COMPOSE_CMD${NC}"
+    echo -e "${GREEN}✅ Using ${COMPOSE_CMD[*]}${NC}"
+
+    if [ "$COMPOSE_IS_LEGACY" = true ]; then
+        echo -e "${YELLOW}⚠️  Legacy docker-compose detected; enabling compatibility mode (PYTHONNOUSERSITE=1).${NC}"
+    fi
+}
+
+compose() {
+    if [ "$COMPOSE_IS_LEGACY" = true ]; then
+        PYTHONNOUSERSITE=1 "${COMPOSE_CMD[@]}" "$@"
+    else
+        "${COMPOSE_CMD[@]}" "$@"
+    fi
 }
 
 # Cleanup function
 cleanup() {
     echo -e "\n${YELLOW}🛑 Shutting down Docker services...${NC}"
-    $COMPOSE_CMD down
+    compose down
     echo -e "${GREEN}✅ All Docker services stopped${NC}"
     exit 0
 }
@@ -77,11 +91,15 @@ fi
 
 # Build the Docker images
 echo -e "${YELLOW}🔨 Building Docker images...${NC}"
-$COMPOSE_CMD build
+compose build
 
 # Start all services
 echo -e "${YELLOW}🚀 Starting all services...${NC}"
-$COMPOSE_CMD $PROFILE_FLAG up -d
+if [ -n "$PROFILE_FLAG" ]; then
+    compose $PROFILE_FLAG up -d
+else
+    compose up -d
+fi
 
 # Wait for services to be ready
 echo -e "${YELLOW}⏳ Waiting for services to start...${NC}"
@@ -95,7 +113,7 @@ for i in {1..30}; do
     fi
     if [ $i -eq 30 ]; then
         echo -e "${RED}❌ Backend API failed to start${NC}"
-        $COMPOSE_CMD logs backend
+        compose logs backend
         exit 1
     fi
     sleep 2
@@ -110,7 +128,7 @@ for i in {1..15}; do
     fi
     if [ $i -eq 15 ]; then
         echo -e "${RED}❌ Frontend failed to start${NC}"
-        $COMPOSE_CMD logs frontend
+        compose logs frontend
         exit 1
     fi
     sleep 2
@@ -125,7 +143,7 @@ for i in {1..30}; do
     fi
     if [ $i -eq 30 ]; then
         echo -e "${RED}❌ Dashboard failed to start${NC}"
-        $COMPOSE_CMD logs dashboard
+        compose logs dashboard
         exit 1
     fi
     sleep 2
@@ -150,13 +168,13 @@ if [ "${ENABLE_NGROK_FRONTEND:-false}" = "true" ]; then
 fi
 
 echo -e "\n${YELLOW}📝 To view logs:${NC}"
-echo -e "All services: ${BLUE}$COMPOSE_CMD logs -f${NC}"
-echo -e "Backend only: ${BLUE}$COMPOSE_CMD logs -f backend${NC}"
-echo -e "Frontend only: ${BLUE}$COMPOSE_CMD logs -f frontend${NC}"
-echo -e "Dashboard only: ${BLUE}$COMPOSE_CMD logs -f dashboard${NC}"
+echo -e "All services: ${BLUE}${COMPOSE_CMD[*]} logs -f${NC}"
+echo -e "Backend only: ${BLUE}${COMPOSE_CMD[*]} logs -f backend${NC}"
+echo -e "Frontend only: ${BLUE}${COMPOSE_CMD[*]} logs -f frontend${NC}"
+echo -e "Dashboard only: ${BLUE}${COMPOSE_CMD[*]} logs -f dashboard${NC}"
 
-echo -e "\n${YELLOW}🛑 To stop all services: ${BLUE}Ctrl+C or run: $COMPOSE_CMD down${NC}"
+echo -e "\n${YELLOW}🛑 To stop all services: ${BLUE}Ctrl+C or run: ${COMPOSE_CMD[*]} down${NC}"
 
 # Follow logs (optional - can be interrupted)
 echo -e "\n${BLUE}📋 Following logs (Ctrl+C to stop log viewing):${NC}"
-$COMPOSE_CMD logs -f
+compose logs -f
