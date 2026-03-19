@@ -21,11 +21,18 @@ RUN pip install uv
 # Set working directory
 WORKDIR /app
 
+# Control optional dependency installation (e.g., dashboard extras)
+ARG INSTALL_DASHBOARD_EXTRAS=false
+
 # Copy dependency files first for better Docker layer caching
 COPY pyproject.toml uv.lock ./
 
 # Create virtual environment and install dependencies
-RUN uv sync --extra dashboard
+RUN if [ "$INSTALL_DASHBOARD_EXTRAS" = "true" ]; then \
+            uv sync --extra dashboard; \
+        else \
+            uv sync; \
+        fi
 
 # Copy the entire application
 COPY . .

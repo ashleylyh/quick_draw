@@ -20,7 +20,9 @@ cd "$SCRIPT_DIR"
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
+    set -a            # automatically export all variables
+    source .env
+    set +a
 fi
 
 # Function to check if Docker is running
@@ -34,15 +36,29 @@ check_docker() {
 
 # Function to check if docker-compose is available
 check_docker_compose() {
-    if command -v docker-compose >/dev/null 2>&1; then
-        COMPOSE_CMD="docker-compose"
-    elif docker compose version >/dev/null 2>&1; then
-        COMPOSE_CMD="docker compose"
+    COMPOSE_IS_LEGACY=false
+    if docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker compose)
+    elif command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD=(docker-compose)
+        COMPOSE_IS_LEGACY=true
     else
         echo -e "${RED}❌ Neither docker-compose nor 'docker compose' is available${NC}"
         exit 1
     fi
-    echo -e "${GREEN}✅ Using $COMPOSE_CMD${NC}"
+    echo -e "${GREEN}✅ Using ${COMPOSE_CMD[*]}${NC}"
+
+    if [ "$COMPOSE_IS_LEGACY" = true ]; then
+        echo -e "${YELLOW}⚠️  Legacy docker-compose detected; enabling compatibility mode (PYTHONNOUSERSITE=1).${NC}"
+    fi
+}
+
+compose() {
+    if [ "$COMPOSE_IS_LEGACY" = true ]; then
+        PYTHONNOUSERSITE=1 "${COMPOSE_CMD[@]}" "$@"
+    else
+        "${COMPOSE_CMD[@]}" "$@"
+    fi
 }
 
 # Check prerequisites
@@ -62,10 +78,10 @@ if [ "$REBUILD" = true ]; then
     docker image rm quickdraw-backend quickdraw-frontend quickdraw-dashboard 2>/dev/null || true
     
     echo -e "${YELLOW}🔨 Building images without cache...${NC}"
-    $COMPOSE_CMD build --no-cache
+    compose build --no-cache
 else
     echo -e "${YELLOW}🔨 Building images...${NC}"
-    $COMPOSE_CMD build
+    compose build
 fi
 
 echo -e "${GREEN}✅ Docker images built successfully!${NC}"
