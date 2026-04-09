@@ -24,7 +24,9 @@ class RealTimeManager {
         this.disconnectWebSocket(); // Close any existing connection
         
         try {
-            const wsUrl = `${window.CONFIG.WS_BASE}/ws/game/${sessionId}`;
+            // Construct WebSocket URL - WS_BASE already includes the full base path
+            const wsUrl = `${window.CONFIG.WS_BASE}/game/${sessionId}`;
+            console.log('Connecting WebSocket to:', wsUrl);
             this.websocket = new WebSocket(wsUrl);
             
             this.websocket.onopen = (event) => {
@@ -218,13 +220,16 @@ class RealTimeManager {
         this.sessionId = null;
         this.reconnectAttempts = 0;
     }
-    
+   
     // Initialize Server-Sent Events for general updates
     connectSSE() {
         this.disconnectSSE(); // Close any existing connection
         
         try {
-            this.eventSource = new EventSource(`${window.CONFIG.BACKEND_URL}/events`);
+            // Use the SSE endpoint path relative to the API base
+            const sseUrl = `${window.CONFIG.BACKEND_URL}/events`;
+            console.log('Connecting to SSE endpoint:', sseUrl);
+            this.eventSource = new EventSource(sseUrl);
             
             this.eventSource.onopen = () => {
                 // console.log('SSE connection established');

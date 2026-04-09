@@ -96,7 +96,6 @@ function initializeRealTime() {
     // Connect to SSE for general events
     realTimeManager.connectSSE();
     
-    // console.log('Real-time features initialized');
   } else {
     console.warn('Real-time features not available, falling back to polling');
   }
@@ -104,7 +103,6 @@ function initializeRealTime() {
 
 // Handle real-time game events
 function handleGameEvent(event) {
-  // console.log('Received game event:', event);
   
   switch (event.event_type) {
     case 'game_session_completed':
@@ -388,7 +386,7 @@ function getInputImageAsBase64() {
   tctx.drawImage(canvas, 0, 0, 28, 28);
   
   const dataURL = temp.toDataURL('image/png');
-  // console.log('getInputImageAsBase64: Generated data URL length:', dataURL.length);
+
   return dataURL;
 }
 

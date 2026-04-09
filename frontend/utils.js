@@ -74,3 +74,11 @@ export function formatTimestamp(ts) {
         return '時間格式錯誤';
     }
 }
+export const API_BASE_URL = window.location.pathname.includes('quickdraw') 
+  ? '/api/quickdraw' 
+  : '/api';
+
+export const getWebSocketURL = () => {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/ws/quickdraw`;
+};

@@ -1001,7 +1001,6 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "seaborn" },
     { name = "tensorflow", extra = ["and-cuda"] },
-    { name = "umap" },
     { name = "umap-learn" },
     { name = "uvicorn" },
     { name = "websockets" },
@@ -1043,7 +1042,6 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "streamlit", marker = "extra == 'dashboard'", specifier = ">=1.28.0" },
     { name = "tensorflow", extras = ["and-cuda"], specifier = ">=2.20.0" },
-    { name = "umap", specifier = ">=0.1.1" },
     { name = "umap-learn", specifier = ">=0.5.5" },
     { name = "uvicorn", specifier = ">=0.35.0" },
     { name = "websockets", specifier = ">=15.0.1" },
@@ -1416,12 +1414,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be76
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839, upload-time = "2025-03-23T13:54:41.845Z" },
 ]
-
-[[package]]
-name = "umap"
-version = "0.1.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4b/46/08ab68936625400fe690684428d4db4764f49b406782cc133df1d0299d06/umap-0.1.1.tar.gz", hash = "sha256:5d08c1a335cc7ee175811a99dc9356d3d4b8567ad082e2b1b205198cf27c4256", size = 3191, upload-time = "2016-01-20T16:33:11.724Z" }
 
 [[package]]
 name = "umap-learn"

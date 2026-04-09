@@ -35,11 +35,11 @@ const getBackendUrl = () => {
 // Configuration object
 const CONFIG = {
     // Backend API configuration
-    BACKEND_URL: getBackendUrl(),
-    API_BASE: `${getBackendUrl()}/api`,
-    
-    // WebSocket configuration
-    WS_BASE: getBackendUrl().replace('http', 'ws'),
+    API_BASE: '/api/quickdraw',
+    API_BASE_URL: '/api/quickdraw',
+    BACKEND_URL: '/api/quickdraw',
+    WS_BASE: (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws/quickdraw',
+    DASHBOARD_URL: '/quickdraw-dashboard',
     
     // Frontend configuration
     FRONTEND_URL: window.location.origin,
