@@ -18,7 +18,7 @@ class DashboardController:
     def __init__(self):
         # Use environment variable for backend URL (for Docker compatibility)
         import os
-        self.backend_url = os.getenv("QUICKDRAW_BACKEND_URL", "http://localhost:8000")
+        self.backend_url = os.getenv("QUICKDRAW_BACKEND_URL", "http://localhost:8080")
         self.data_fetcher = DataFetcher()
         
         # Initialize session state for language if not exists

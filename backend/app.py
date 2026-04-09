@@ -186,7 +186,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "app:app", 
         host="0.0.0.0", 
-        port=8000,
+        port=8080,
         reload=is_dev,  # Only reload in development mode
         log_level="info",
         workers=1 if is_dev else None  # Single worker in dev mode for easier debugging

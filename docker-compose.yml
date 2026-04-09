@@ -3,13 +3,15 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-redis
+    # ports:
+    #   - "127.0.0.1:${REDIS_PORT:-6379}:6379"  # Only bind to localhost
     ports:
-      - "127.0.0.1:${REDIS_PORT:-6379}:6379"  # Only bind to localhost
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_password}
-    command: redis-server --requirepass ${REDIS_PASSWORD:-your_secure_password} --protected-mode yes
+    command: redis-server --requirepass ${REDIS_PASSWORD:-your_secure_password} --protected-mode yes --save "" --appendonly no
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-your_secure_password}", "ping"]
       interval: 10s
@@ -23,38 +25,22 @@ services:
     build: .
     container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-backend
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "127.0.0.1:8080:8080"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_password}
+      - PUBLIC_FRONTEND_URL=https://shlab.duckdns.org
     depends_on:
       redis:
         condition: service_healthy
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_DB=${REDIS_DB:-0}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - API_CLIENT=${API_CLIENT}
-      - FRONTEND_CLIENT=${FRONTEND_CLIENT}
-      - DASHBOARD_CLIENT=${DASHBOARD_CLIENT}
-      - BACKEND_CLIENT=${BACKEND_CLIENT}
-      - FRONTEND_PORT=${FRONTEND_PORT:-3030}
-      - DASHBOARD_PORT=${DASHBOARD_PORT:-8501}
-      - BACKEND_PORT=${BACKEND_PORT:-8000}
-      - CORS_ENABLED=${CORS_ENABLED:-false}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
-      - CORS_ALLOWED_ORIGIN_REGEX=${CORS_ALLOWED_ORIGIN_REGEX}
-      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
-      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
-      - CORS_EXPOSED_HEADERS=${CORS_EXPOSED_HEADERS}
-      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
-      - CORS_MAX_AGE=${CORS_MAX_AGE:-3600}
-      - PUBLIC_FRONTEND_URL=${PUBLIC_FRONTEND_URL}
     working_dir: /app/backend
     command: python app.py
     volumes:
       - ./logs:/app/logs
       - ./backend/uploads:/app/backend/uploads
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/docs"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -66,31 +52,21 @@ services:
     build: .
     container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-frontend
     ports:
-      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
+      - "127.0.0.1:3030:3030"
     environment:
-      - BACKEND_CLIENT=${BACKEND_CLIENT:-http://localhost:8000}
-      - BACKEND_CLIENT=${BACKEND_CLIENT:-http://localhost:8000}
-      - BACKEND_HOST=${BACKEND_HOST:-backend}
-      - BACKEND_PORT=${BACKEND_PORT:-8000}
-      - FRONTEND_CLIENT=${FRONTEND_CLIENT:-http://localhost:3030}
-      - FRONTEND_HOST=${FRONTEND_HOST:-0.0.0.0}
-      - DASHBOARD_CLIENT=${DASHBOARD_CLIENT:-http://localhost:8501}
-      - DASHBOARD_HOST=${DASHBOARD_HOST:-dashboard}
-      - BACKEND_PORT=${BACKEND_PORT:-8000}
-      - FRONTEND_CLIENT=${FRONTEND_CLIENT:-http://localhost:3030}
-      - FRONTEND_HOST=${FRONTEND_HOST:-0.0.0.0}
-      - DASHBOARD_CLIENT=${DASHBOARD_CLIENT:-http://localhost:8501}
-      - DASHBOARD_HOST=${DASHBOARD_HOST:-dashboard}
-      - DASHBOARD_PORT=${DASHBOARD_PORT:-8501}
-      - PUBLIC_FRONTEND_URL=${PUBLIC_FRONTEND_URL}
-      - FRONTEND_PORT=${FRONTEND_PORT:-3030}
-      - PUBLIC_FRONTEND_URL=${PUBLIC_FRONTEND_URL}
-      - FRONTEND_PORT=${FRONTEND_PORT:-3030}
+      - BACKEND_CLIENT=https://shlab.duckdns.org/api
+      - BACKEND_HOST=backend
+      - BACKEND_PORT=8080
+      - FRONTEND_CLIENT=https://shlab.duckdns.org
+      - FRONTEND_HOST=0.0.0.0
+      - FRONTEND_PORT=3030
+      - DASHBOARD_CLIENT=https://shlab.duckdns.org/dashboard
+      - PUBLIC_FRONTEND_URL=https://shlab.duckdns.org
     command: /app/scripts/docker-frontend-start.sh
     volumes:
       - ./logs:/app/logs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-3000}"]
+      test: ["CMD", "curl", "-f", "http://localhost:3030"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -99,21 +75,26 @@ services:
 
   # Dashboard service
   dashboard:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_DASHBOARD_EXTRAS: "true"
     container_name: ${COMPOSE_PROJECT_NAME:-quickdraw}-dashboard
     ports:
-      - "${DASHBOARD_PORT:-8501}:8501"
+      - "127.0.0.1:8501:8501"
+    environment:
+      - QUICKDRAW_BACKEND_URL=http://backend:8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_password}
+      - BACKEND_CLIENT=https://shlab.duckdns.org/api
+      - BACKEND_HOST=backend
+      - BACKEND_PORT=8080
     depends_on:
       backend:
         condition: service_healthy
-    environment:
-      - QUICKDRAW_BACKEND_URL=${QUICKDRAW_BACKEND_URL:-http://backend:8000}
-      - REDIS_HOST=redis
-      - REDIS_PORT=${REDIS_PORT:-6379}
-      - REDIS_DB=${REDIS_DB:-0}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
     working_dir: /app/dashboard
-    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true --server.baseUrlPath=/dashboard
+    command: python -m streamlit run app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true --server.baseUrlPath=/dashboard
     volumes:
       - ./logs:/app/logs
       - ./dashboard/.streamlit:/app/dashboard/.streamlit

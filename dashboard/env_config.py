@@ -6,7 +6,7 @@ import os
 from typing import Dict, Any
 
 # Backend API settings
-BACKEND_URL = os.getenv("QUICKDRAW_BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = os.getenv("QUICKDRAW_BACKEND_URL", "http://localhost:8080")
 
 # Redis settings
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")

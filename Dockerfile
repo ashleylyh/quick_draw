@@ -44,7 +44,7 @@ RUN mkdir -p logs uploads/screenshots
 RUN chmod +x scripts/*.sh
 
 # Expose all required ports
-EXPOSE 3000 8000 8501
+EXPOSE 3030 8080 8501 8088
 
 # Default command - can be overridden in docker-compose
 CMD ["bash", "-c", "echo 'Use docker-compose to start services'"]
