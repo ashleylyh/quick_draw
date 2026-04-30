@@ -108,6 +108,15 @@ if you change any setting in .env file, please remember to run `./scripts/genera
 
 ### 💻 Local Development
 
+### Option 0: Original Docker command (Most Recommended)
+```bash
+docker compose build
+
+docker compose --profile sharing up -d
+
+docker compose --profile sharing down
+```
+
 ### Option 1: All Services at Once (Recommended)
 ```bash
 # Start all services (backend, frontend, dashboard) in one terminal
@@ -330,11 +339,3 @@ BACKEND_API_URL=http://localhost:8000
 
 **🎨 Ready to start drawing? Run `./start-all.sh` and visit http://localhost:3000!**
 
----
-### Docker Command 
-
-docker compose build
-
-docker compose --profile sharing up -d
-
-docker compose --profile sharing down
