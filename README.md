@@ -76,7 +76,7 @@ redis-server
 
 ### 4. Download Required Models
 Download the UMAP model file:
-- [UMAP Background Model](https://drive.google.com/file/d/15NLciurQcZmeL0ToH-XFJCODLTK8Z8aG/view?usp=sharing)
+- [UMAP Background Model](https://drive.google.com/file/d/1_pLpxGEHQyvKpkbMlGDlofGT3eoJjkZj/view?usp=sharing)
 - Place in `backend/feature/` directory
 
 ## 🎯 Running the Application
